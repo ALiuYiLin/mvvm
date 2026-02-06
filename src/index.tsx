@@ -37,6 +37,86 @@ function ref<T>(value: T): Ref<T> {
 }
 
 /**
+ * 创建响应式对象
+ * 深度代理对象，监听所有属性的变化
+ */
+function reactive<T extends object>(target: T): T {
+  // 用于触发更新的虚拟 Ref
+  const triggerRef = { value: null, __isRef: true as const } as Ref<any>;
+  
+  const createReactiveObject = (obj: any): any => {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    // 如果是数组，递归处理每个元素
+    if (Array.isArray(obj)) {
+      const arrayMethods = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse', 'fill', 'copyWithin'];
+      return new Proxy(obj.map(item => createReactiveObject(item)), {
+        get(target, key) {
+          const value = target[key as keyof typeof target];
+          
+          // 依赖收集
+          if (currentUpdateFn) {
+            eventBus.subscribe(triggerRef, currentUpdateFn, isCompiling);
+          }
+          
+          // 拦截数组变更方法
+          if (typeof key === 'string' && arrayMethods.includes(key) && typeof value === 'function') {
+            return function (...args: any[]) {
+              const result = (value as Function).apply(target, args);
+              eventBus.publish(triggerRef);
+              return result;
+            };
+          }
+          
+          return value;
+        },
+        set(target, key, newValue) {
+          const result = Reflect.set(target, key, createReactiveObject(newValue));
+          eventBus.publish(triggerRef);
+          return result;
+        }
+      });
+    }
+    
+    // 处理普通对象
+    const proxy = new Proxy(obj, {
+      get(target, key) {
+        // 依赖收集
+        if (currentUpdateFn) {
+          eventBus.subscribe(triggerRef, currentUpdateFn, isCompiling);
+        }
+        
+        const value = target[key];
+        // 如果属性值是对象，递归代理
+        if (value !== null && typeof value === 'object') {
+          return createReactiveObject(value);
+        }
+        return value;
+      },
+      set(target, key, newValue) {
+        const oldValue = target[key];
+        if (oldValue !== newValue) {
+          target[key] = newValue;
+          eventBus.publish(triggerRef);
+        }
+        return true;
+      },
+      deleteProperty(target, key) {
+        const result = Reflect.deleteProperty(target, key);
+        eventBus.publish(triggerRef);
+        return result;
+      }
+    });
+    
+    return proxy;
+  };
+  
+  return createReactiveObject(target);
+}
+
+/**
  * 创建响应式数组
  * 拦截数组的变更方法，触发更新
  */
@@ -149,6 +229,14 @@ const isShow: Ref<boolean> = ref(true);
 const isVisible: Ref<boolean> = computed(() => count.value % 3 === 0);
 const arr = reactiveArray([1, 2, 3]);
 
+// 使用 reactive 创建响应式对象
+const student = reactive({
+  name: "张三",
+  age: 18,
+  gender: "男",
+});
+
+
 watch(isVisible, (newValue, oldValue) => {
   console.log("isVisible changed:", newValue, oldValue);
 });
@@ -166,6 +254,7 @@ const options: Option[] = [
         handler: () => {
           isShow.value = count.value % 3 === 0;
           count.value++;
+          student.age++;  // reactive 对象直接访问属性，不需要 .value
           arr.value.push(count.value);
         },
       },
@@ -185,6 +274,16 @@ const options: Option[] = [
       </ul>
     ),
   },
+  {
+    selector: "#student",
+    render: () => (
+      <div>
+        <p>姓名: {student.name}</p>
+        <p>年龄: {student.age}</p>
+        <p>性别: {student.gender}</p>
+      </div>
+    )
+  }
 ];
 
 // 执行编译
@@ -224,7 +323,7 @@ function compile(options: Option[]) {
       // 处理渲染函数
       if (render) {
         const result = render();
-        console.log("result: ", result);
+        console.log('result: ', result);
         $element.empty(); // 清空现有内容
         if (typeof result === "string") {
           $element.html(result);
