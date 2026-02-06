@@ -115,6 +115,12 @@ function watch<T>(ref: Ref<T>, callback: (newValue: T, oldValue: T) => void) {
     oldValue = newValue; // 更新旧值
   }, false);
 }
+function useEffect(callback: () => void,[...refs]) {
+    const updateFn = callback
+    refs.forEach(ref => {
+        eventBus.subscribe(ref, updateFn, false);
+    })
+}
 
 // 存储所有创建的 Ref，用于遍历
 const count: Ref<number> = ref(0);
@@ -122,10 +128,14 @@ const isShow: Ref<boolean> = ref(true);
 const isVisible: Ref<boolean> = computed(() => count.value % 3 === 0);
 
 watch(isVisible, (newValue, oldValue) => {
-
   console.log("isVisible changed:", newValue, oldValue);
-
 });
+
+useEffect(() => {
+  console.log("count", count.value);
+}, [isVisible]);
+
+
 const options: Option[] = [
   {
     selector: "#counter",
