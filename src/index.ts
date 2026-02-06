@@ -45,7 +45,7 @@ class EventBus {
   }
 
   // 发布：通知所有订阅了该 Ref 的更新函数执行
-  publish(ref: Ref<any>) {
+  publish(ref: Ref<any>, oldValue?: any, newValue?: any) {
     const callbacks = this.subscribers.get(ref);
     if (callbacks) {
       callbacks.forEach((cb) => cb());
@@ -105,11 +105,27 @@ function computed<T>(fn: () => T): Ref<T> {
   return cref as Ref<T>;
 }
 
+function watch<T>(ref: Ref<T>, callback: (newValue: T, oldValue: T) => void) {
+  // 用闭包保存旧值
+  let oldValue = ref.value;
+  
+  eventBus.subscribe(ref, () => {
+    const newValue = ref.value;
+    callback(newValue, oldValue);
+    oldValue = newValue; // 更新旧值
+  }, false);
+}
+
 // 存储所有创建的 Ref，用于遍历
 const count: Ref<number> = ref(0);
 const isShow: Ref<boolean> = ref(true);
 const isVisible: Ref<boolean> = computed(() => count.value % 3 === 0);
 
+watch(isVisible, (newValue, oldValue) => {
+
+  console.log("isVisible changed:", newValue, oldValue);
+
+});
 const options: Option[] = [
   {
     selector: "#counter",
