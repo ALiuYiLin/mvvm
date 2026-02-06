@@ -36,6 +36,81 @@ function ref<T>(value: T): Ref<T> {
   return state;
 }
 
+/**
+ * 创建响应式数组
+ * 拦截数组的变更方法，触发更新
+ */
+function reactiveArray<T>(initialValue: T[]): Ref<T[]> {
+  // 需要拦截的数组变更方法
+  const arrayMethods = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse', 'fill', 'copyWithin'];
+  
+  // 用于存储代理数组和触发更新
+  const container = {
+    __isRef: true as const,
+    rawArray: [...initialValue],
+    proxyArray: null as T[] | null
+  };
+  
+  // 创建代理数组
+  const createReactiveArray = (arr: T[]): T[] => {
+    return new Proxy(arr, {
+      get(target, key) {
+        const value = target[key as keyof T[]];
+        
+        // 拦截数组变更方法
+        if (typeof key === 'string' && arrayMethods.includes(key) && typeof value === 'function') {
+          return function (...args: any[]) {
+            const result = (value as Function).apply(target, args);
+            // 触发更新
+            eventBus.publish(state);
+            return result;
+          };
+        }
+        
+        return value;
+      },
+      set(target, key, newValue) {
+        const result = Reflect.set(target, key, newValue);
+        // 数组索引赋值或 length 变化时触发更新
+        if (typeof key === 'string' && (!isNaN(Number(key)) || key === 'length')) {
+          eventBus.publish(state);
+        }
+        return result;
+      }
+    });
+  };
+  
+  container.proxyArray = createReactiveArray(container.rawArray);
+  
+  // 创建 Ref 代理
+  const state = new Proxy(container, {
+    get(target, key) {
+      if (key === 'value') {
+        // 依赖收集
+        if (currentUpdateFn) {
+          eventBus.subscribe(state as unknown as Ref<T[]>, currentUpdateFn, isCompiling);
+        }
+        return target.proxyArray;
+      }
+      if (key === '__isRef') {
+        return true;
+      }
+      return target[key as keyof typeof target];
+    },
+    set(target, key, newValue) {
+      if (key === 'value') {
+        target.rawArray = [...newValue];
+        target.proxyArray = createReactiveArray(target.rawArray);
+        eventBus.publish(state as unknown as Ref<T[]>);
+        return true;
+      }
+      return Reflect.set(target, key, newValue);
+    }
+  }) as unknown as Ref<T[]>;
+  
+  return state;
+}
+
 function computed<T>(fn: () => T): Ref<T> {
   const cref = ref<T | null>(null);
   const updateFn = () => {
@@ -72,7 +147,7 @@ function useEffect(callback: () => void, [...refs]) {
 const count: Ref<number> = ref(0);
 const isShow: Ref<boolean> = ref(true);
 const isVisible: Ref<boolean> = computed(() => count.value % 3 === 0);
-const arr = [1, 2, 3];
+const arr = reactiveArray([1, 2, 3]);
 
 watch(isVisible, (newValue, oldValue) => {
   console.log("isVisible changed:", newValue, oldValue);
@@ -91,7 +166,7 @@ const options: Option[] = [
         handler: () => {
           isShow.value = count.value % 3 === 0;
           count.value++;
-          arr.push(count.value);
+          arr.value.push(count.value);
         },
       },
     ],
@@ -106,7 +181,7 @@ const options: Option[] = [
     selector: "#msg",
     render: () => (
       <ul>
-        {arr.map((item) => <li>{item}</li>)}
+        {arr.value.map((item: number) => <li>{item}</li>)}
       </ul>
     ),
   },
