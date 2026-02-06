@@ -72,6 +72,7 @@ function useEffect(callback: () => void, [...refs]) {
 const count: Ref<number> = ref(0);
 const isShow: Ref<boolean> = ref(true);
 const isVisible: Ref<boolean> = computed(() => count.value % 3 === 0);
+const arr = [1, 2, 3];
 
 watch(isVisible, (newValue, oldValue) => {
   console.log("isVisible changed:", newValue, oldValue);
@@ -90,6 +91,7 @@ const options: Option[] = [
         handler: () => {
           isShow.value = count.value % 3 === 0;
           count.value++;
+          arr.push(count.value);
         },
       },
     ],
@@ -102,10 +104,11 @@ const options: Option[] = [
   },
   {
     selector: "#msg",
-    show: () => isVisible.value,
-    render: () => {
-      return <div>msg: {count.value}</div>;
-    },
+    render: () => (
+      <ul>
+        {arr.map((item) => <li>{item}</li>)}
+      </ul>
+    ),
   },
 ];
 

@@ -119,16 +119,22 @@ export function jsxDEV(
   _source?: any,
   _self?: any
 ): HTMLElement | DocumentFragment {
+  // 处理 Fragment
+  if (tag === Fragment) {
+    return Fragment(props || {});
+  }
   return createElement(tag, props);
 }
 
 /**
  * Fragment 支持
  */
-export function Fragment({ children }: { children?: Child[] }): DocumentFragment {
+export function Fragment(props: { children?: Child | Child[] }): DocumentFragment {
   const fragment = document.createDocumentFragment();
+  const children = props?.children;
   if (children) {
-    appendChildren(fragment, children);
+    const childArray = Array.isArray(children) ? children : [children];
+    appendChildren(fragment, childArray);
   }
   return fragment;
 }
@@ -141,6 +147,7 @@ function appendChildren(parent: HTMLElement | DocumentFragment, children: Child[
     if (child == null || typeof child === "boolean") {
       continue;
     } else if (Array.isArray(child)) {
+      // 处理嵌套数组（如 map 返回的数组）
       appendChildren(parent, child);
     } else if (typeof child === "string" || typeof child === "number") {
       parent.appendChild(document.createTextNode(String(child)));

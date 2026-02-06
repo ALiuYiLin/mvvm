@@ -14,10 +14,5 @@ export default defineConfig({
       '@mvvm/jsx-runtime': path.resolve(__dirname, 'src/core/jsx-runtime.ts'),
       '@mvvm/jsx-dev-runtime': path.resolve(__dirname, 'src/core/jsx-runtime.ts')
     }
-  },
-  esbuild: {
-    jsxFactory: 'createElement',
-    jsxFragment: 'Fragment',
-    jsxInject: `import { createElement, Fragment } from '@mvvm/jsx-runtime'`
   }
 })
