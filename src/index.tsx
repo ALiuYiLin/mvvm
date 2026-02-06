@@ -1,68 +1,10 @@
 // 主入口文件
 import "./style.css";
 import $ from "jquery";
-
-type Option = {
-  selector: string;
-  text?: string | (() => string | number | boolean);
-  show?: boolean | (() => boolean);
-  listeners?: {
-    type: string;
-    handler: (e: Event) => void;
-  }[];
-};
-
-type Ref<T> = {
-  value: T;
-  __isRef: true; // 标识符，用于识别 Ref 对象
-};
-
+import { Ref, Option } from "./types";
+import { EventBus } from "./core/event";
 // 当前正在收集依赖的更新函数
 let currentUpdateFn: (() => void) | null = null;
-
-/**
- * 发布订阅中心
- */
-class EventBus {
-  private subscribers = new Map<Ref<any>, Set<() => void>>();
-  // 标记哪些订阅是 compile 阶段建立的
-  private compileSubscribers = new Map<Ref<any>, Set<() => void>>();
-
-  // 订阅：将更新函数绑定到 Ref
-  subscribe(ref: Ref<any>, callback: () => void, isCompile = false) {
-    if (!this.subscribers.has(ref)) {
-      this.subscribers.set(ref, new Set());
-    }
-    this.subscribers.get(ref)!.add(callback);
-
-    // 记录 compile 阶段的订阅，方便后续清理
-    if (isCompile) {
-      if (!this.compileSubscribers.has(ref)) {
-        this.compileSubscribers.set(ref, new Set());
-      }
-      this.compileSubscribers.get(ref)!.add(callback);
-    }
-  }
-
-  // 发布：通知所有订阅了该 Ref 的更新函数执行
-  publish(ref: Ref<any>, oldValue?: any, newValue?: any) {
-    const callbacks = this.subscribers.get(ref);
-    if (callbacks) {
-      callbacks.forEach((cb) => cb());
-    }
-  }
-
-  // 只清空 compile 阶段建立的订阅
-  clearCompileSubscribers() {
-    this.compileSubscribers.forEach((callbacks, ref) => {
-      const allCallbacks = this.subscribers.get(ref);
-      if (allCallbacks) {
-        callbacks.forEach((cb) => allCallbacks.delete(cb));
-      }
-    });
-    this.compileSubscribers.clear();
-  }
-}
 
 const eventBus = new EventBus();
 
@@ -108,18 +50,22 @@ function computed<T>(fn: () => T): Ref<T> {
 function watch<T>(ref: Ref<T>, callback: (newValue: T, oldValue: T) => void) {
   // 用闭包保存旧值
   let oldValue = ref.value;
-  
-  eventBus.subscribe(ref, () => {
-    const newValue = ref.value;
-    callback(newValue, oldValue);
-    oldValue = newValue; // 更新旧值
-  }, false);
+
+  eventBus.subscribe(
+    ref,
+    () => {
+      const newValue = ref.value;
+      callback(newValue, oldValue);
+      oldValue = newValue; // 更新旧值
+    },
+    false
+  );
 }
-function useEffect(callback: () => void,[...refs]) {
-    const updateFn = callback
-    refs.forEach(ref => {
-        eventBus.subscribe(ref, updateFn, false);
-    })
+function useEffect(callback: () => void, [...refs]) {
+  const updateFn = callback;
+  refs.forEach((ref) => {
+    eventBus.subscribe(ref, updateFn, false);
+  });
 }
 
 // 存储所有创建的 Ref，用于遍历
@@ -134,7 +80,6 @@ watch(isVisible, (newValue, oldValue) => {
 useEffect(() => {
   console.log("count", count.value);
 }, [isVisible]);
-
 
 const options: Option[] = [
   {
@@ -158,6 +103,9 @@ const options: Option[] = [
   {
     selector: "#msg",
     show: () => isVisible.value,
+    render: () => {
+      return <div>msg: {count.value}</div>;
+    },
   },
 ];
 
@@ -174,7 +122,7 @@ function compile(options: Option[]) {
 
   // 遍历每个 option，进行依赖收集 + DOM 绑定
   options.forEach((option) => {
-    const { selector, text, show, listeners } = option;
+    const { selector, text, show, listeners, render } = option;
     const $element = $(selector);
 
     // 创建该 selector 的更新函数
@@ -193,6 +141,17 @@ function compile(options: Option[]) {
           show() ? $element.show() : $element.hide();
         } else {
           show ? $element.show() : $element.hide();
+        }
+      }
+      // 处理渲染函数
+      if (render) {
+        const result = render();
+        console.log("result: ", result);
+        $element.empty(); // 清空现有内容
+        if (typeof result === "string") {
+          $element.html(result);
+        } else if (result instanceof Node) {
+          $element.append(result);
         }
       }
     };
