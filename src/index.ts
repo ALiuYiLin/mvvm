@@ -2,8 +2,6 @@
 import "./style.css";
 import $ from "jquery";
 
-
-
 type Option = {
   selector: string;
   text?: string | (() => string | number | boolean);
@@ -16,33 +14,34 @@ type Option = {
 
 type Ref<T> = {
   value: T;
-  __isRef: true;  // 标识符，用于识别 Ref 对象
+  __isRef: true; // 标识符，用于识别 Ref 对象
 };
 
-type Dep<T> = {
-  data: Ref<T>;
-  selectors: string[];
-};
-
-// 当前正在收集依赖的 selector
-let currentCollectingSelector: string | null = null;
-// 用于存储依赖收集结果的 Map: Ref -> Set<selector>
-const depMap = new WeakMap<Ref<any>, Set<string>>();
-// 存储 selector 对应的更新函数: selector -> updateFn
-const updateFnMap = new Map<string, () => void>();
+// 当前正在收集依赖的更新函数
+let currentUpdateFn: (() => void) | null = null;
 
 /**
  * 发布订阅中心
  */
 class EventBus {
   private subscribers = new Map<Ref<any>, Set<() => void>>();
+  // 标记哪些订阅是 compile 阶段建立的
+  private compileSubscribers = new Map<Ref<any>, Set<() => void>>();
 
   // 订阅：将更新函数绑定到 Ref
-  subscribe(ref: Ref<any>, callback: () => void) {
+  subscribe(ref: Ref<any>, callback: () => void, isCompile = false) {
     if (!this.subscribers.has(ref)) {
       this.subscribers.set(ref, new Set());
     }
     this.subscribers.get(ref)!.add(callback);
+
+    // 记录 compile 阶段的订阅，方便后续清理
+    if (isCompile) {
+      if (!this.compileSubscribers.has(ref)) {
+        this.compileSubscribers.set(ref, new Set());
+      }
+      this.compileSubscribers.get(ref)!.add(callback);
+    }
   }
 
   // 发布：通知所有订阅了该 Ref 的更新函数执行
@@ -53,13 +52,22 @@ class EventBus {
     }
   }
 
-  // 清空订阅
-  clear() {
-    this.subscribers.clear();
+  // 只清空 compile 阶段建立的订阅
+  clearCompileSubscribers() {
+    this.compileSubscribers.forEach((callbacks, ref) => {
+      const allCallbacks = this.subscribers.get(ref);
+      if (allCallbacks) {
+        callbacks.forEach((cb) => allCallbacks.delete(cb));
+      }
+    });
+    this.compileSubscribers.clear();
   }
 }
 
 const eventBus = new EventBus();
+
+// 标记是否处于 compile 阶段
+let isCompiling = false;
 
 function ref<T>(value: T): Ref<T> {
   const obj = { value, __isRef: true as const };
@@ -76,12 +84,9 @@ function ref<T>(value: T): Ref<T> {
       return true;
     },
     get: (target, key) => {
-      // 依赖收集：当有 selector 正在收集时，记录这个 Ref 被哪个 selector 访问
-      if (key === "value" && currentCollectingSelector) {
-        if (!depMap.has(state)) {
-          depMap.set(state, new Set());
-        }
-        depMap.get(state)!.add(currentCollectingSelector);
+      // 依赖收集：当有更新函数正在收集时，直接建立订阅关系
+      if (key === "value" && currentUpdateFn) {
+        eventBus.subscribe(state, currentUpdateFn, isCompiling);
       }
       return target[key as keyof typeof target];
     },
@@ -89,15 +94,21 @@ function ref<T>(value: T): Ref<T> {
   return state;
 }
 
+function computed<T>(fn: () => T): Ref<T> {
+  const cref = ref<T | null>(null);
+  const updateFn = () => {
+    cref.value = fn();
+  };
+  currentUpdateFn = updateFn;
+  updateFn();
+  currentUpdateFn = null;
+  return cref as Ref<T>;
+}
+
 // 存储所有创建的 Ref，用于遍历
-const allRefs: Ref<any>[] = [];
-
 const count: Ref<number> = ref(0);
-allRefs.push(count);
 const isShow: Ref<boolean> = ref(true);
-allRefs.push(isShow);
-
-const deps: Dep<any>[] = [];
+const isVisible: Ref<boolean> = computed(() => count.value % 3 === 0);
 
 const options: Option[] = [
   {
@@ -106,10 +117,9 @@ const options: Option[] = [
       {
         type: "click",
         handler: () => {
-            isShow.value = count.value % 3 === 0
-            count.value++
-        }
-
+          isShow.value = count.value % 3 === 0;
+          count.value++;
+        },
       },
     ],
     text: () => `点击计数: ${count.value}`,
@@ -121,21 +131,20 @@ const options: Option[] = [
   },
   {
     selector: "#msg",
-    show: () => isShow.value
-  }
+    show: () => isVisible.value,
+  },
 ];
 
 // 执行编译
-compile(options, deps);
+compile(options);
 
 /**
- * 编译过程：遍历 options，同时完成依赖收集、DOM 绑定和订阅设置
+ * 编译过程：遍历 options，完成依赖收集、DOM 绑定和订阅设置
  */
-function compile(options: Option[], deps: Dep<any>[]) {
-  // 清空
-  deps.length = 0;
-  eventBus.clear();
-  updateFnMap.clear();
+function compile(options: Option[]) {
+  // 只清空 compile 阶段的订阅，保留 computed 等建立的订阅
+  eventBus.clearCompileSubscribers();
+  isCompiling = true;
 
   // 遍历每个 option，进行依赖收集 + DOM 绑定
   options.forEach((option) => {
@@ -162,43 +171,22 @@ function compile(options: Option[], deps: Dep<any>[]) {
       }
     };
 
-    // 存储更新函数
-    updateFnMap.set(selector, updateFn);
+    // 设置当前正在收集的更新函数
+    currentUpdateFn = updateFn;
 
-    // 设置当前正在收集的 selector
-    currentCollectingSelector = selector;
-
-    // 首次执行更新函数，同时触发依赖收集
+    // 首次执行更新函数，同时触发依赖收集并建立订阅
     updateFn();
 
-    // 处理事件监听器绑定（只绑定一次，不需要在更新时重新绑定）
+    // 重置
+    currentUpdateFn = null;
+
+    // 处理事件监听器绑定（只绑定一次）
     if (listeners) {
       listeners.forEach((listener) => {
         $element.on(listener.type, listener.handler);
       });
     }
-
-    // 重置当前收集的 selector
-    currentCollectingSelector = null;
   });
 
-  // 将 depMap 转换为 deps 数组格式，并建立订阅关系
-  allRefs.forEach((refObj) => {
-    const selectors = depMap.get(refObj);
-    if (selectors && selectors.size > 0) {
-      deps.push({
-        data: refObj,
-        selectors: Array.from(selectors),
-      });
-
-      // 为每个依赖的 selector 建立订阅关系
-      selectors.forEach((selector) => {
-        const updateFn = updateFnMap.get(selector);
-        if (updateFn) {
-          eventBus.subscribe(refObj, updateFn);
-        }
-      });
-    }
-  });
-  return deps;
+  isCompiling = false;
 }
