@@ -7,16 +7,6 @@ function isRefLike<T = unknown>(value: unknown): value is Ref<T> {
   return !!value && typeof value === 'object' && (value as any).__isRef === true
 }
 
-function deepClone<T>(value: T): T {
-  const anyGlobalThis = globalThis as any
-  if(typeof anyGlobalThis.structuredClone === 'function') return anyGlobalThis.structuredClone(value)
-  try {
-    return JSON.parse(JSON.stringify(value)) as T
-  } catch {
-    return value
-  }
-}
-
 export function watch<T>(source: Ref<T> | (() => T) | object, callback: (newValue: T, oldValue: T) => void) {
   if(typeof source === 'function') {
     const getter = source as () => T
