@@ -1,0 +1,70 @@
+import { Ref } from "../types";
+import { eventBus } from "./event";
+import { getReactiveTriggerRef } from "./reactive";
+import { setCurrentUpdateFn } from "./state";
+
+function isRefLike<T = unknown>(value: unknown): value is Ref<T> {
+  return !!value && typeof value === 'object' && (value as any).__isRef === true
+}
+
+function deepClone<T>(value: T): T {
+  const anyGlobalThis = globalThis as any
+  if(typeof anyGlobalThis.structuredClone === 'function') return anyGlobalThis.structuredClone(value)
+  try {
+    return JSON.parse(JSON.stringify(value)) as T
+  } catch {
+    return value
+  }
+}
+
+export function watch<T>(source: Ref<T> | (() => T) | object, callback: (newValue: T, oldValue: T) => void) {
+  if(typeof source === 'function') {
+    const getter = source as () => T
+    let oldValue: T
+
+    const runGetter = () => {
+      setCurrentUpdateFn(job)
+      const value = getter()
+      setCurrentUpdateFn(null)
+      return value
+    }
+
+    const job = () => {
+      const newValue = runGetter()
+      if(Object.is(newValue, oldValue)) return
+      callback(newValue, oldValue)
+      oldValue = newValue
+    }
+
+    oldValue = runGetter()
+    return
+  }
+
+  if(isRefLike<T>(source)) {
+    const ref = source as Ref<T>
+    let oldValue = ref.value;
+
+    eventBus.subscribe(
+      ref,
+      () => {
+        const newValue = ref.value;
+        if(Object.is(newValue, oldValue)) return
+        callback(newValue, oldValue);
+        oldValue = newValue;
+      }
+    );
+    return
+  }
+
+  const triggerRef = getReactiveTriggerRef(source)
+  if(!triggerRef) {
+    throw new Error('watch 只能监控 ref、reactive 返回值，或 getter 函数')
+  }
+
+  let oldSnapshot = source as T
+  eventBus.subscribe(triggerRef, () => {
+    const newSnapshot = source as T
+    callback(newSnapshot, oldSnapshot)
+    oldSnapshot = newSnapshot
+  })
+}

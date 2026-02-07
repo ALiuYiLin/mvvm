@@ -1,6 +1,14 @@
 import { Ref } from "../types";
 import { eventBus } from "./event";
 import { getCurrentUpdateFn } from "./state";
+
+const reactiveTriggerMap = new WeakMap<object, Ref<any>>()
+
+export function getReactiveTriggerRef(target: unknown): Ref<any> | null {
+  if(target && typeof target === 'object') return reactiveTriggerMap.get(target as object) ?? null
+  return null
+}
+
 export function reactive<T extends object>(inittialValue: T): T {
   const triggerRef = { value: null, __isRef: true as const } as Ref<any>
 
@@ -41,6 +49,7 @@ export function reactive<T extends object>(inittialValue: T): T {
    
     })
 
+    reactiveTriggerMap.set(proxy, triggerRef)
     return proxy
   }
   return createReactiveObject(inittialValue)
@@ -58,7 +67,7 @@ export function reactiveArray<T extends object>(inittialValue: T): T {
   const triggerRef = {value: null, __isRef: true as const} as Ref<any>
 
   if(Array.isArray(inittialValue)){
-    return new Proxy(inittialValue.map(item=>reactive(item)),{
+    const proxy = new Proxy(inittialValue.map(item=>reactive(item)),{
       get(target, key){
         const value = target[key as keyof typeof target]
         const currentUpdateFn = getCurrentUpdateFn()
@@ -80,6 +89,8 @@ export function reactiveArray<T extends object>(inittialValue: T): T {
         return result
       }
     }) as T
+    reactiveTriggerMap.set(proxy as unknown as object, triggerRef)
+    return proxy
   }
   return inittialValue
 }
