@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import path from 'path'
 
 export default defineConfig({
   server: {
@@ -7,5 +8,11 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist'
+  },
+  resolve: {
+    alias: {
+      '@mvvm/jsx-runtime': path.resolve(__dirname, 'src/core/jsx/jsx-runtime.ts'),
+      '@mvvm/jsx-dev-runtime': path.resolve(__dirname, 'src/core/jsx/jsx-runtime.ts')
+    }
   }
 })
