@@ -5,17 +5,20 @@ import { ref } from "./core/ref";
 import "./style.css";
 import { reactive } from "./core/reactive";
 import { computed } from "./core/computed";
+import { watch } from "./core/watch";
 
 // 1. 响应式数据
 // 2. 订阅发布模式
 // 3. 编译
 
 const count = ref(0);
+console.log('count: ', count);
 
 const student = reactive({
   name: '张三',
   age: 20
 })
+console.log('student: ', student);
 
 const studentList = reactive([
   {
@@ -32,10 +35,8 @@ const studentList = reactive([
   },
 ])
 
-const objaaa = reactive({
-  name: '李四',
-  age: 20
-})
+
+
 
 
 const nameAndAge = computed(()=>{
@@ -49,8 +50,20 @@ function handlerClick(){
     name: 'aaaaa',
     age: Math.random()
   })
-  objaaa.name = '李四1'
 }
+
+watch(count, (newValue, oldValue) => {
+  console.log('count 变化了', oldValue, '->', newValue);
+})
+watch(nameAndAge, (newValue, oldValue) => {
+  console.log('nameAndAge 变化了', oldValue, '->', newValue);
+})
+watch(student, (newValue, oldValue) => {
+  console.log('student 变化了', oldValue, '->', newValue);
+})
+watch(() => student.age, (newValue, oldValue) => {
+  console.log('student.age 变化了', oldValue, '->', newValue);
+})
 
 const options: Option[] = [
   {
