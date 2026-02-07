@@ -4,7 +4,7 @@ import { setCurrentUpdateFn } from "./state";
 
 
 export function compile(option: Option) {
-  const { selector, show, text, listeners } = option;
+  const { selector, show, text, listeners,render } = option;
 
   const element = $(selector);
 
@@ -13,6 +13,12 @@ export function compile(option: Option) {
     const textValue = typeof text === "function" ? text() : text;
     if (textValue !== undefined) element.text(textValue);
     showValue || showValue === undefined ? element.show() : element.hide();
+    if(render && typeof render === 'function'){
+      const result = render()
+      element.empty()
+      if(typeof result === 'string') element.text(result)
+      else if(result instanceof Node) element.append(result)
+    }
   };
 
   setCurrentUpdateFn(updateFn);

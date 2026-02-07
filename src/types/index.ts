@@ -12,5 +12,6 @@ export type Option = {
     selector: string,
     show?: boolean | (() => boolean)
     text?: string | (() => string)
-    listeners?: Listener[]
+    listeners?: Listener[],
+    render?: () => string | HTMLElement | Text | DocumentFragment; 
 }
