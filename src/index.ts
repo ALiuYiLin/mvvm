@@ -16,9 +16,29 @@ const student = reactive({
   age: 20
 })
 
+const studentList = reactive([
+  {
+    name: '张三',
+    age: 20
+  },
+  {
+    name: '张四',
+    age: 21
+  },
+  {
+    name: '张五',
+    age: 22
+  },
+])
+
+
 function handlerClick(){
   count.value++
   student.age++
+  studentList.push({
+    name: 'aaaaa',
+    age: Math.random()
+  })
 }
 
 const options: Option[] = [
@@ -39,6 +59,10 @@ const options: Option[] = [
   {
     selector: '#student',
     text: ()=> '姓名：' + student.name + ' 年龄：' + student.age
+  },
+  {
+    selector: '#student--list',
+    text: ()=> studentList.map(item=>'姓名：' + item.name + ' 年龄：' + item.age).join('\n')
   }
 ];
 
