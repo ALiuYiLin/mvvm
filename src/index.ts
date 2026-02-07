@@ -4,6 +4,7 @@ import  { Option } from './types'
 import { ref } from "./core/ref";
 import "./style.css";
 import { reactive } from "./core/reactive";
+import { watchEffect } from "./core/watchEffect";
 import { computed } from "./core/computed";
 import { watch } from "./core/watch";
 
@@ -63,6 +64,9 @@ watch(student, (newValue, oldValue) => {
 })
 watch(() => student.age, (newValue, oldValue) => {
   console.log('student.age 变化了', oldValue, '->', newValue);
+})
+watchEffect(() => {
+  console.log('watchEffect student.age 变化了', student.age);
 })
 
 const options: Option[] = [
