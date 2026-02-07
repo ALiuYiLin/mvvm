@@ -4,6 +4,7 @@ import  { Option } from './types'
 import { ref } from "./core/ref";
 import "./style.css";
 import { reactive } from "./core/reactive";
+import { computed } from "./core/computed";
 
 // 1. 响应式数据
 // 2. 订阅发布模式
@@ -31,6 +32,15 @@ const studentList = reactive([
   },
 ])
 
+const objaaa = reactive({
+  name: '李四',
+  age: 20
+})
+
+
+const nameAndAge = computed(()=>{
+  return '姓名：' + student.name + ' 年龄：' + student.age
+})
 
 function handlerClick(){
   count.value++
@@ -39,6 +49,7 @@ function handlerClick(){
     name: 'aaaaa',
     age: Math.random()
   })
+  objaaa.name = '李四1'
 }
 
 const options: Option[] = [
@@ -63,7 +74,11 @@ const options: Option[] = [
   {
     selector: '#student--list',
     text: ()=> studentList.map(item=>'姓名：' + item.name + ' 年龄：' + item.age).join('\n')
-  }
+  },
+  {
+    selector: '#lisi-info',
+    text: ()=> nameAndAge.value
+  },
 ];
 
 options.forEach((option) => compile(option));
