@@ -1,7 +1,7 @@
 import { Ref } from "../types";
 import { eventBus } from "./event";
 import { getCurrentUpdateFn } from "./state";
-export function reactive<T extends object>(inittialValue: T): Ref<T[]> {
+export function reactive<T extends object>(inittialValue: T): T {
   const triggerRef = { value: null, __isRef: true as const } as Ref<any>
 
   const createReactiveObject = (obj: any): any=> {
