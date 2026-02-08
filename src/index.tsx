@@ -4,9 +4,7 @@ import  { Option } from './types'
 import { ref } from "./core/ref";
 import "./style.css";
 import { reactive } from "./core/reactive";
-import { watchEffect } from "./core/watchEffect";
 import { computed } from "./core/computed";
-import { watch } from "./core/watch";
 
 // 1. 响应式数据
 // 2. 订阅发布模式
@@ -53,22 +51,6 @@ function handlerClick(){
   })
 }
 
-watch(count, (newValue, oldValue) => {
-  console.log('count 变化了', oldValue, '->', newValue);
-})
-watch(nameAndAge, (newValue, oldValue) => {
-  console.log('nameAndAge 变化了', oldValue, '->', newValue);
-})
-watch(student, (newValue, oldValue) => {
-  console.log('student 变化了', oldValue, '->', newValue);
-})
-watch(() => student.age, (newValue, oldValue) => {
-  console.log('student.age 变化了', oldValue, '->', newValue);
-})
-watchEffect(() => {
-  console.log('watchEffect student.age 变化了', student.age);
-})
-
 const options: Option[] = [
   {
     selector: "#count",
@@ -101,6 +83,35 @@ const options: Option[] = [
     selector: '#lisi-info',
     text: ()=> nameAndAge.value
   },
+  {
+    selector: '#input-name',
+    listeners:[
+      {
+        type: 'input',
+        callback: (e) => {
+          student.name = (e.target as HTMLInputElement).value
+        }
+      }
+    ]
+  },
+  {
+    selector: '#user-form',
+    render: () => (
+      <form>
+        <label>姓名：</label>
+        <input id="input-name" type="text" placeholder="请输入姓名"  onInput={(e: Event) => {
+          student.name = (e.target as HTMLInputElement).value
+        }}/>
+        <label>年龄：</label>
+        <input id="input-age" type="number" placeholder="请输入年龄" 
+          value={student.age}
+          onInput={(e: Event) => {
+          student.age = Number((e.target as HTMLInputElement).value)
+        }}/>
+        <span>{student.age}</span>
+      </form>
+    )
+  }
 ];
 
 options.forEach((option) => compile(option));
