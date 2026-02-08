@@ -1,61 +1,62 @@
 // 自定义 JSX 工厂函数
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      // HTML 元素
-      div: HTMLAttributes;
-      span: HTMLAttributes;
-      p: HTMLAttributes;
-      a: HTMLAttributes & { href?: string; target?: string };
-      button: HTMLAttributes & { type?: string; disabled?: boolean };
-      input: HTMLAttributes & { type?: string; value?: string; placeholder?: string; disabled?: boolean };
-      img: HTMLAttributes & { src?: string; alt?: string };
-      ul: HTMLAttributes;
-      li: HTMLAttributes;
-      h1: HTMLAttributes;
-      h2: HTMLAttributes;
-      h3: HTMLAttributes;
-      h4: HTMLAttributes;
-      h5: HTMLAttributes;
-      h6: HTMLAttributes;
-      form: HTMLAttributes;
-      label: HTMLAttributes & { for?: string };
-      textarea: HTMLAttributes & { value?: string; placeholder?: string };
-      select: HTMLAttributes;
-      option: HTMLAttributes & { value?: string };
-      table: HTMLAttributes;
-      tr: HTMLAttributes;
-      td: HTMLAttributes;
-      th: HTMLAttributes;
-      thead: HTMLAttributes;
-      tbody: HTMLAttributes;
-      br: HTMLAttributes;
-      hr: HTMLAttributes;
-      [elemName: string]: HTMLAttributes;
-    }
-
-    interface HTMLAttributes {
-      id?: string;
-      class?: string;
-      className?: string;
-      style?: string | Partial<CSSStyleDeclaration>;
-      onClick?: (e: MouseEvent) => void;
-      onChange?: (e: Event) => void;
-      onInput?: (e: Event) => void;
-      onSubmit?: (e: Event) => void;
-      children?: any;
-      [key: string]: any;
-    }
-
-    type Element = HTMLElement | Text | DocumentFragment;
-  }
-}
-
 export namespace JSX {
   export type Element = HTMLElement | Text | DocumentFragment;
+  
   export interface IntrinsicElements {
-    [elemName: string]: any;
+    // HTML 元素
+    div: HTMLAttributes;
+    span: HTMLAttributes;
+    p: HTMLAttributes;
+    a: HTMLAttributes & { href?: string; target?: string };
+    button: HTMLAttributes & { type?: string; disabled?: boolean };
+    input: HTMLAttributes & { type?: string; value?: string; placeholder?: string; disabled?: boolean };
+    img: HTMLAttributes & { src?: string; alt?: string };
+    ul: HTMLAttributes;
+    li: HTMLAttributes;
+    h1: HTMLAttributes;
+    h2: HTMLAttributes;
+    h3: HTMLAttributes;
+    h4: HTMLAttributes;
+    h5: HTMLAttributes;
+    h6: HTMLAttributes;
+    form: HTMLAttributes;
+    label: HTMLAttributes & { for?: string };
+    textarea: HTMLAttributes & { value?: string; placeholder?: string };
+    select: HTMLAttributes;
+    option: HTMLAttributes & { value?: string };
+    table: HTMLAttributes;
+    tr: HTMLAttributes;
+    td: HTMLAttributes;
+    th: HTMLAttributes;
+    thead: HTMLAttributes;
+    tbody: HTMLAttributes;
+    br: HTMLAttributes;
+    hr: HTMLAttributes;
+    [elemName: string]: HTMLAttributes;
+  }
+
+  export interface HTMLAttributes {
+    id?: string;
+    class?: string;
+    className?: string;
+    style?: string | Partial<CSSStyleDeclaration>;
+    
+    // 表单属性
+    value?: string | number | readonly string[] | undefined;
+    checked?: boolean;
+    placeholder?: string;
+    disabled?: boolean;
+    type?: string;
+    
+    // 事件
+    onClick?: (e: MouseEvent) => void;
+    onChange?: (e: Event) => void;
+    onInput?: (e: Event) => void;
+    onSubmit?: (e: Event) => void;
+    
+    children?: any;
+    [key: string]: any;
   }
 }
 

@@ -104,7 +104,7 @@ const options: Option[] = [
         }}/>
         <label>年龄：</label>
         <input id="input-age" type="number" placeholder="请输入年龄" 
-          value={student.age}
+          value={String(student.age)}
           onInput={(e: Event) => {
           student.age = Number((e.target as HTMLInputElement).value)
         }}/>
