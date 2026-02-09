@@ -1,5 +1,6 @@
 {
   "name": "actview",
+  "private": true,
   "version": "1.0.0",
   "description": "Configuration-driven MVVM born for Campaign/Marketing single pages: selector + config for automatic data binding, supporting reactive/ref, computed, watch/watchEffect, JSX rendering, and quick event mounting.",
   "keywords": [
@@ -24,6 +25,8 @@
     "vite": "^6.4.1"
   },
   "dependencies": {
+    "@actview/core": "workspace:*",
+    "@actview/jsx": "workspace:*",
     "jquery": "^4.0.0"
   }
 }
