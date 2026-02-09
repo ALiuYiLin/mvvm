@@ -1,6 +1,6 @@
 {
   "name": "@actview/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Core reactive system for Actview - ref, reactive, computed, watch, compile",
   "type": "module",
   "main": "index.ts",
@@ -22,7 +22,16 @@
     "computed",
     "watch"
   ],
+  "author": "scliuyilin",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "homepage": "",
+  "bugs": {
+    "url": ""
+  },
   "dependencies": {
     "jquery": "^4.0.0"
   },

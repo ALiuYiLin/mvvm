@@ -15,8 +15,8 @@
       "types": "./jsx-runtime.ts"
     },
     "./jsx-dev-runtime": {
-      "import": "./jsx-runtime.ts",
-      "types": "./jsx-runtime.ts"
+      "import": "./jsx-dev-runtime.ts",
+      "types": "./jsx-dev-runtime.ts"
     }
   },
   "files": [
@@ -27,5 +27,14 @@
     "jsx",
     "jsx-runtime"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "author": "scliuyilin",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "homepage": "",
+  "bugs": {
+    "url": ""
+  }
 }
