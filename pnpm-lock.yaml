@@ -31,6 +31,15 @@ importers:
         specifier: ^6.4.1
         version: 6.4.1(@types/node@25.2.2)
 
+  packages/actview:
+    dependencies:
+      '@actview/core':
+        specifier: workspace:*
+        version: link:../core
+      '@actview/jsx':
+        specifier: workspace:*
+        version: link:../jsx
+
   packages/core:
     dependencies:
       jquery:
