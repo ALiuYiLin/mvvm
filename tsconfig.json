@@ -9,12 +9,8 @@
 
     /* 自定义 JSX */
     "jsx": "react-jsx",
-    "jsxImportSource": "@mvvm",
+    "jsxImportSource": "@actview/jsx",
     "baseUrl": ".",
-    "paths": {
-      "@mvvm/jsx-runtime": ["./src/core/jsx/jsx-runtime.ts"],
-      "@mvvm/jsx-dev-runtime": ["./src/core/jsx/jsx-runtime.ts"]
-    },
 
 
     /* Bundler mode */

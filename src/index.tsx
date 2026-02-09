@@ -1,10 +1,8 @@
 // 主入口文件
-import { compile } from "./core/compile";
-import  { Option } from './types'
-import { ref } from "./core/ref";
 import "./style.css";
-import { reactive } from "./core/reactive";
-import { computed } from "./core/computed";
+import { ref, reactive, computed, compile, Option} from '@actview/core';
+
+
 
 // 1. 响应式数据
 // 2. 订阅发布模式
