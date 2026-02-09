@@ -15,3 +15,5 @@ export type Option = {
     listeners?: Listener[],
     render?: () => string | HTMLElement | Text | DocumentFragment; 
 }
+
+export type { ComponentDefinition } from '../component'
