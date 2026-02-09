@@ -1,16 +1,16 @@
 import {
   ref,
   compile,
-  Option,
+  type Option,
   registerComponents,
   resolveComponents
 } from "@actview/core";
 import './index.css'
 // 导入并注册组件
 import { MyButton } from './index';
+import { MyAddIcon } from "../svg-icon";
 
-registerComponents([MyButton]);
-
+registerComponents([MyButton, MyAddIcon]);
 // 解析页面中的自定义组件（在 DOM 解析完成后执行）
 resolveComponents();
 

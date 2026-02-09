@@ -55,3 +55,6 @@ registerComponents([MyButton]);
 // 解析页面中的自定义组件（在 DOM 解析完成后执行）
 resolveComponents();
 ```
+
+### 待解决问题
+[ ] 自定义组件嵌套自定义组件样式失效
