@@ -28,7 +28,7 @@ const options: Option[] = [
         callback: handleToggle,
       },
     ],
-    render:()=> switchRender({checked:isOn.value,'data-id':'demo-switch'})
+    render:()=> switchRender({checked:isOn.value? true:undefined})
   },
   {
     selector: "#switch-status",

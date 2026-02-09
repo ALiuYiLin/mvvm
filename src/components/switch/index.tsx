@@ -1,8 +1,4 @@
-import {
-  defineComponent,
-  ComponentDefinition,
-  computed,
-} from "@actview/core";
+import { defineComponent, ComponentDefinition } from "@actview/core";
 
 /**
  * MySwitch 开关组件
@@ -25,38 +21,32 @@ export type MySwitchProps = {
   size?: string;
   checked?: boolean;
   disabled?: boolean;
-  'label-on'?: string;
-  'label-off'?: string;
-  'data-id'?: string;
+  "label-on"?: string;
+  "label-off"?: string;
+  "data-id"?: string;
 };
 
 export const switchRender = (props: MySwitchProps) => {
-    console.log('props: ', props);
-//   const kls = [
-//     'switch',
-//     props.type ? `switch-${props.type}` : 'switch-primary',
-//     props.size ? `switch-${props.size}` : '',
-//     props.checked !== undefined ? 'switch-checked' : '',
-//     props.disabled !== undefined ? 'switch-disabled' : '',
-//   ].filter(Boolean).join(' ');
-  const kls = computed(()=>[
-    'switch',
-    props.type ? `switch-${props.type}` : 'switch-primary',
-    props.size ? `switch-${props.size}` : '',
-    props.checked !== undefined ? 'switch-checked' : '',
-    props.disabled !== undefined ? 'switch-disabled' : '',
-  ].filter(Boolean).join(' '))
+  const kls = [
+    "switch",
+    props.type ? `switch-${props.type}` : "switch-primary",
+    props.size ? `switch-${props.size}` : "",
+    props.checked !== undefined ? "switch-checked" : "",
+    props.disabled !== undefined ? "switch-disabled" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className={kls.value} tabIndex={0} role="switch" data-id={props['data-id']}>
+    <div className={kls} tabIndex={0} role="switch" data-id={props["data-id"]}>
       <div className="switch-handle">
         <slot></slot>
       </div>
-      {(props['label-on'] || props['label-off']) && (
+      {(props["label-on"] || props["label-off"]) && (
         <span className="switch-label">
           {props.checked !== undefined
-            ? (props['label-on'] || '')
-            : (props['label-off'] || '')}
+            ? props["label-on"] || ""
+            : props["label-off"] || ""}
         </span>
       )}
     </div>
