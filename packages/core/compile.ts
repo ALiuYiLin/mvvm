@@ -1,9 +1,9 @@
-import { Option } from "../types";
+import { Option } from "./types";
 import $ from "jquery";
 import { setCurrentUpdateFn } from "./state";
 
 
-import { diff } from "./diff";
+import { diff, diffChildren } from "./diff";
 
 export function compile(option: Option) {
   const { selector, show, text, listeners,render } = option;
@@ -83,22 +83,4 @@ export function compile(option: Option) {
   }
 }
 
-function diffChildren(parent: HTMLElement, oldList: (Node | undefined | null)[], newList: (Node | undefined | null)[]) {
-  const maxLength = Math.max(oldList.length, newList.length);
-  
-  for (let i = 0; i < maxLength; i++) {
-    const oldNode = oldList[i];
-    const newNode = newList[i];
 
-    if (!oldNode && newNode) {
-      // 新增
-      parent.appendChild(newNode);
-    } else if (oldNode && !newNode) {
-      // 删除
-      parent.removeChild(oldNode);
-    } else if (oldNode && newNode) {
-      // 对比更新
-      diff(oldNode as Node, newNode);
-    }
-  }
-}

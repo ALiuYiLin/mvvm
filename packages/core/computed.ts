@@ -1,4 +1,4 @@
-import { Ref } from "../types"
+import { Ref } from "./types"
 import { ref } from "./ref"
 import { setCurrentUpdateFn } from "./state"
 

@@ -1,4 +1,4 @@
-import { Ref } from "../types";
+import { Ref } from "./types";
 
 export class EventBus {
   private subscribers = new Map<Ref<any>, Set<()=>void>>();

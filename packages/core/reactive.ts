@@ -1,4 +1,4 @@
-import { Ref } from "../types";
+import { Ref } from "./types";
 import { eventBus } from "./event";
 import { getCurrentUpdateFn } from "./state";
 
