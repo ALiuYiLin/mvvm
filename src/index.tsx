@@ -1,7 +1,15 @@
 // 主入口文件
-import "./style.css";
-import { ref, reactive, computed, compile, Option} from '@actview/core';
+// import "./style.css";
+import { ref, reactive, computed, compile, Option, resolveComponents, registerComponents } from '@actview/core';
 
+// 导入并注册组件
+import { MyButton, buttonCmp } from './components/button';
+
+registerComponents([MyButton]);
+
+// 解析页面中的自定义组件（在 DOM 解析完成后执行）
+resolveComponents();
+console.log("resolveComponents");
 
 
 // 1. 响应式数据
@@ -32,7 +40,7 @@ const studentList = reactive([
   },
 ])
 
-
+const type = ref('primary');
 
 
 
@@ -47,6 +55,11 @@ function handlerClick(){
     name: 'aaaaa',
     age: Math.random()
   })
+  if(count.value % 2 === 0) {
+    type.value = 'primary'
+  } else {
+    type.value = 'secondary'
+  }
 }
 
 const options: Option[] = [
@@ -109,7 +122,20 @@ const options: Option[] = [
         <span>{student.age}</span>
       </form>
     )
+  },
+  {
+    selector: '[data-id="sss"]',
+    listeners: [
+      {
+        type: 'click',
+        callback: () => {
+          student.age++
+        }
+      }
+    ],
+    // render: ()=> buttonCmp({type: type.value, size: 'lg'})
   }
 ];
-
+console.log("before compile");
 options.forEach((option) => compile(option));
+console.log("after compile");
