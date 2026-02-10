@@ -8,7 +8,7 @@ import { MyInput } from "./index";
 
 const app = new App();
 app.use(MyInput);
-app.resolveCustomComponents();
+
 
 // 交互演示：实时显示输入内容
 const inputValue = ref("123");

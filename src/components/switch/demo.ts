@@ -8,7 +8,7 @@ import { MySwitch } from "./index";
 
 const app = new App();
 app.use(MySwitch);
-app.resolveCustomComponents();
+
 
 // 交互演示：切换开关状态
 const isOn = ref(false);

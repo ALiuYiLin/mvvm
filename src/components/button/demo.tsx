@@ -11,7 +11,7 @@ import { MyAddIcon } from "../svg-icon";
 const app = new App();
 app.use(MyButton);
 app.use(MyAddIcon);
-app.resolveCustomComponents();
+
 
 // 响应式状态（用于演示页面）
 const count = ref(0);

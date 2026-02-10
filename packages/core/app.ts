@@ -7,6 +7,8 @@ import { compile, compileCustom } from "./compile";
 import { Option } from "./types";
 
 export class App {
+  private _customResolved = false;
+
   /**
    * 注册组件（render 函数，函数名即组件标签名）
    */
@@ -16,20 +18,24 @@ export class App {
   }
 
   /**
-   * 解析并编译 HTML 中的自定义组件标签
+   * 解析并编译 HTML 中的自定义组件标签（内部自动调用）
    */
-  resolveCustomComponents(root: Element = document.body): this {
+  private resolveCustomComponents(root: Element = document.body): void {
     const options = resolveComponents(root);
     options.forEach((item) => {
       compileCustom(item);
     });
-    return this;
+    this._customResolved = true;
   }
 
   /**
    * 编译选项配置（挂载事件、代理 DOM 样式/属性等）
+   * 首次调用前会自动解析自定义组件
    */
   resolveOptions(options: Option[]): this {
+    if (!this._customResolved) {
+      this.resolveCustomComponents();
+    }
     options.forEach((option) => {
       compile(option);
     });
