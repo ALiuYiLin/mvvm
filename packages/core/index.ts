@@ -1,9 +1,3 @@
-export { ref } from "./ref"
-export { computed } from "./computed"
-export { watchEffect } from "./watchEffect"
-export { watch } from "./watch"
-export { reactive } from "./reactive"
-export { compile, compileCustom } from "./compile"
-export { registerComponent, resolveComponents, registerComponents, getComponent } from "./component"
-export { App } from "./app"
-export * from './types'
+export * from './reactivity';
+export * from './runtime';
+export * from './types';

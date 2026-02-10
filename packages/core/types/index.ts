@@ -31,4 +31,4 @@ export type Option = {
   children?: Option[];
 };
 
-export type { RenderFn } from "../component";
+export type RenderFn = (props: Record<string, any>, slots: Map<string, Node[]>) => HTMLElement | DocumentFragment | Text | string | SVGElement;
