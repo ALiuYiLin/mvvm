@@ -5,4 +5,5 @@ export { watch } from "./watch"
 export { reactive } from "./reactive"
 export { compile, compileCustom } from "./compile"
 export { registerComponent, resolveComponents, registerComponents, getComponent } from "./component"
+export { App } from "./app"
 export * from './types'

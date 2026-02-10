@@ -1,20 +1,14 @@
 import {
   ref,
-  compile,
   type Option,
-  registerComponents,
-  resolveComponents,
-  compileCustom,
+  App,
 } from "@actview/core";
 import "./index.css";
 import { MyInput } from "./index";
 
-registerComponents([MyInput]);
-
-const oops = resolveComponents();
-oops.forEach((item) => {
-  compileCustom(item)
-});
+const app = new App();
+app.use(MyInput);
+app.resolveCustomComponents();
 
 // 交互演示：实时显示输入内容
 const inputValue = ref("123");
@@ -60,6 +54,4 @@ const options: Option[] = [
   },
 ];
 
-options.forEach((option) => {
-  compile(option);
-});
+app.resolveOptions(options);

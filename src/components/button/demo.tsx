@@ -1,21 +1,17 @@
 import {
   ref,
-  compile,
   type Option,
-  registerComponents,
-  resolveComponents
+  App,
 } from "@actview/core";
 import './index.css'
 // 导入并注册组件
 import { MyButton } from './index';
 import { MyAddIcon } from "../svg-icon";
-import { compileCustom } from "@actview/core";
-registerComponents([MyButton, MyAddIcon]);
-// 解析页面中的自定义组件（在 DOM 解析完成后执行）
-const oops = resolveComponents();
-oops.forEach((item) => {
-  compileCustom(item)
-});
+
+const app = new App();
+app.use(MyButton);
+app.use(MyAddIcon);
+app.resolveCustomComponents();
 
 // 响应式状态（用于演示页面）
 const count = ref(0);
@@ -60,6 +56,4 @@ const options: Option[] = [
   },
 ];
 
-options.forEach((option) => {
-  compile(option);
-});
+app.resolveOptions(options);

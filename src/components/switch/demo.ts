@@ -1,19 +1,14 @@
 import {
   ref,
-  compile,
   Option,
-  registerComponents,
-  resolveComponents,
-  compileCustom,
+  App,
 } from "@actview/core";
 import "./index.css";
 import { MySwitch } from "./index";
 
-registerComponents([MySwitch]);
-const oops = resolveComponents();
-oops.forEach((item) => {
-  compileCustom(item);
-});
+const app = new App();
+app.use(MySwitch);
+app.resolveCustomComponents();
 
 // 交互演示：切换开关状态
 const isOn = ref(false);
@@ -34,6 +29,4 @@ const options: Option[] = [
   },
 ];
 
-options.forEach((option) => {
-  compile(option);
-});
+app.resolveOptions(options);
