@@ -1,6 +1,5 @@
 import {
   defineComponent,
-  ComponentDefinition,
 } from "@actview/core";
 /**
  * MyButton 组件定义
@@ -24,20 +23,24 @@ export type MyButtonProps = {
   size?: string;
   disabled?: boolean;
   loading?: boolean;
+  text?: string;
+  onClick?: () => void;
+  'data-id'?: string
 };
 
-export const buttonRender = (props: MyButtonProps) => {
+export const buttonRender = (props: MyButtonProps, slots?: Map<string, Node[]>) => {
     const kls = ['btn', props.type ? `btn-${props.type}` : '', props.size ? `btn-${props.size}` : '', props.disabled !== undefined ? 'btn-disabled' : '', props.loading !== undefined ? 'btn-loading' : ''].filter(Boolean).join(' ');
     return (
-      <div className={kls}>
-        <slot name="before"></slot>
-        <slot></slot>
-        <slot name="after"></slot>
+      <div className={kls} data-id={props['data-id']} onClick={props.onClick}>
+        {slots?.get('before')}
+        {slots?.get('default')}
+        {props.text}
+        {slots?.get('after')}
       </div>
     );
 }
 
-export const MyButton: ComponentDefinition = defineComponent({
+export const MyButton = defineComponent({
   name: "MyButton",
   render: buttonRender
 });

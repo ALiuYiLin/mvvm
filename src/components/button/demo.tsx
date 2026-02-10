@@ -9,11 +9,14 @@ import './index.css'
 // 导入并注册组件
 import { MyButton } from './index';
 import { MyAddIcon } from "../svg-icon";
+import { compileCustom } from "@actview/core";
 
 registerComponents([MyButton, MyAddIcon]);
 // 解析页面中的自定义组件（在 DOM 解析完成后执行）
-resolveComponents();
-
+const oops = resolveComponents();
+oops.forEach((item) => {
+  compileCustom(item)
+});
 
 // 响应式状态（用于演示页面）
 const count = ref(0);
@@ -31,12 +34,16 @@ function handleReset() {
 const options: Option[] = [
   {
     selector: '[data-id="counter-btn"]',
-    listeners: [
-      {
-        type: "click",
-        callback: handleIncrement,
-      },
-    ],
+    render: () => (
+      <MyButton
+        type="primary"
+        size="lg"
+        data-id="counter-btn"
+        onClick={handleIncrement}
+        text="点击增加"
+      >
+      </MyButton>
+    ),
   },
   {
     selector: '[data-id="reset-btn"]',

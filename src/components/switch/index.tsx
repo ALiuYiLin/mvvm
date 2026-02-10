@@ -1,4 +1,4 @@
-import { defineComponent, ComponentDefinition } from "@actview/core";
+import { defineComponent } from "@actview/core";
 
 /**
  * MySwitch 开关组件
@@ -53,7 +53,7 @@ export const switchRender = (props: MySwitchProps) => {
   );
 };
 
-export const MySwitch: ComponentDefinition = defineComponent({
+export const MySwitch = defineComponent({
   name: "MySwitch",
   render: switchRender,
 });

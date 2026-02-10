@@ -2,18 +2,25 @@
  * 组件系统 - 支持自定义标签和插槽
  */
 
+import { ParsedOption } from "./types";
+
 export interface ComponentDefinition {
     /** 组件名称（自定义标签名，如 MyButton） */
     name: string;
     /** 组件模板 - HTML 字符串或选择器 */
     template?: string;
     /** render 函数 - 接收 props，返回 DOM 元素（支持 JSX） */
-    render?: (props: Record<string, string>) => HTMLElement | DocumentFragment | Text | string;
+    render?: (props: Record<string, string>, slots: Map<string, Node[]>) => HTMLElement | DocumentFragment | Text | string | SVGElement;
     /** 组件样式（可选） */
     style?: string;
     /** 组件初始化回调 */
     setup?: (el: HTMLElement, props: Record<string, string>) => void;
 }
+
+/** 可作为 JSX 标签使用的组件类型 */
+export type JsxComponent = ComponentDefinition & {
+    (props?: Record<string, any>): any;
+};
 
 // 组件注册表
 const componentRegistry = new Map<string, ComponentDefinition>();
@@ -21,10 +28,10 @@ const componentRegistry = new Map<string, ComponentDefinition>();
 /**
  * 注册组件
  */
-export function defineComponent(definition: ComponentDefinition): ComponentDefinition {
+export function defineComponent(definition: ComponentDefinition): JsxComponent {
     // 统一转为小写存储（因为浏览器会将自定义标签名转为小写）
     componentRegistry.set(definition.name.toLowerCase(), definition);
-    return definition;
+    return definition as JsxComponent;
 }
 
 /**
@@ -134,7 +141,7 @@ function createComponentInstance(
 
     if (definition.render) {
         // render 函数模式：传入 props，返回带 <slot> 的 DOM
-        const result = definition.render(props);
+        const result = definition.render(props,slots);
         if (typeof result === 'string') {
             const wrapper = document.createElement('div');
             wrapper.innerHTML = result.trim();
@@ -235,11 +242,27 @@ function applyProps(element: HTMLElement, props: Record<string, string>): void {
     // 不要将组件特有的 props 传递到 DOM（如 type, size 等由 setup 处理）
 }
 
+
 /**
  * 解析并替换页面中的自定义组件
  * @param root 根元素，默认为 document.body
  */
-export function resolveComponents(root: Element = document.body): void {
+export function resolveComponents(root: Element = document.body) {
+    const options: ParsedOption[] = []
+
+    // 判断 root 本身是否为自定义组件
+    const rootDef = componentRegistry.get(root.tagName.toLowerCase());
+    if (rootDef) {
+        const slots = parseSlots(root);
+        const props = getProps(root);
+        options.push({
+            el: root,
+            props,
+            slots,
+            render: rootDef.render
+        });
+    }
+
     // 遍历所有已注册的组件
     componentRegistry.forEach((definition, name) => {
         // 查找所有该组件的实例（浏览器会将标签名转为小写）
@@ -248,14 +271,21 @@ export function resolveComponents(root: Element = document.body): void {
         customElements.forEach(customElement => {
             // 解析插槽
             const slots = parseSlots(customElement);
+
+            // 先递归解析插槽内的子组件（深度优先，子组件排在前面）
+            // resolveSlotComponents(slots, options);
+
             // 获取 props
             const props = getProps(customElement);
-            // 创建组件实例
-            const instance = createComponentInstance(definition, slots, props);
-            // 替换原元素
-            customElement.replaceWith(instance);
+            options.push({
+                el: customElement,
+                props,
+                slots,
+                render: definition.render
+            })
         });
     });
+    return options
 }
 
 /**

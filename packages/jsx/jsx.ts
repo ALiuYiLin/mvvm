@@ -1,8 +1,16 @@
 // 自定义 JSX 工厂函数
 
 export namespace JSX {
-  export type Element = HTMLElement | Text | DocumentFragment;
+  export type Element = HTMLElement | SVGElement | Text | DocumentFragment;
   
+  export interface ElementClass {
+    render?: (...args: any[]) => any;
+  }
+
+  export interface ElementAttributesProperty {
+    props: {};
+  }
+
   export interface IntrinsicElements {
     // HTML 元素
     div: HTMLAttributes;
@@ -60,17 +68,37 @@ export namespace JSX {
   }
 }
 
-type Child = HTMLElement | Text | string | number | boolean | null | undefined | Child[];
+type Child = HTMLElement | SVGElement | Text | string | number | boolean | null | undefined | Child[];
+
+/** 对象组件类型（如 ComponentDefinition） */
+type ObjectComponent = {
+  render?: (props: Record<string, any>, ...args: any[]) => any;
+  name?: string;
+};
+
+type Tag = string | Function | ObjectComponent;
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const SVG_TAGS = new Set([
+  "svg", "path", "circle", "ellipse", "line", "polygon", "polyline", "rect",
+  "g", "defs", "use", "symbol", "clipPath", "mask", "pattern", "image",
+  "text", "tspan", "textPath", "foreignObject", "marker", "linearGradient",
+  "radialGradient", "stop", "filter", "feBlend", "feColorMatrix",
+  "feComponentTransfer", "feComposite", "feConvolveMatrix", "feDiffuseLighting",
+  "feDisplacementMap", "feFlood", "feGaussianBlur", "feImage", "feMerge",
+  "feMergeNode", "feMorphology", "feOffset", "feSpecularLighting", "feTile",
+  "feTurbulence", "animate", "animateTransform", "set",
+]);
 
 /**
  * 自定义 JSX 工厂函数
  * 将 JSX 转换为真实 DOM 元素
  */
 export function createElement(
-  tag: string | Function,
+  tag: Tag,
   props: Record<string, any> | null,
   ...children: Child[]
-): HTMLElement | DocumentFragment {
+): HTMLElement | SVGElement | DocumentFragment {
   // 从 props 中提取 children（jsxDEV 模式会把 children 放在 props 里）
   const propsChildren = props?.children;
   const allChildren = children.length > 0 ? children : (propsChildren ? (Array.isArray(propsChildren) ? propsChildren : [propsChildren]) : []);
@@ -80,8 +108,26 @@ export function createElement(
     return tag({ ...props, children: allChildren });
   }
 
-  // 创建 DOM 元素
-  const element = document.createElement(tag);
+  // 如果 tag 是对象组件（如 ComponentDefinition）
+  if (typeof tag === "object" && tag !== null && typeof tag.render === "function") {
+    const result = tag.render({ ...props, children: allChildren });
+    if (result instanceof DocumentFragment || result instanceof HTMLElement || result instanceof SVGElement) {
+      return result;
+    }
+    if (typeof result === "string") {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = result.trim();
+      return wrapper.firstElementChild as HTMLElement || wrapper;
+    }
+    return document.createDocumentFragment();
+  }
+
+  // 创建 DOM 元素（SVG 元素需要使用命名空间）
+  const tagName = tag as string;
+  const isSvg = SVG_TAGS.has(tagName);
+  const element = isSvg
+    ? document.createElementNS(SVG_NS, tagName)
+    : document.createElement(tagName);
 
   // 设置属性
   if (props) {
@@ -89,7 +135,7 @@ export function createElement(
       if (key === "children") {
         continue; // children 单独处理
       } else if (key === "className" || key === "class") {
-        element.className = value;
+        element.setAttribute("class", value);
       } else if (key === "style" && typeof value === "object") {
         Object.assign(element.style, value);
       } else if (key.startsWith("on") && typeof value === "function") {
@@ -115,13 +161,13 @@ export function createElement(
  * 签名: jsxDEV(tag, props, key, isStaticChildren, source, self)
  */
 export function jsxDEV(
-  tag: string | Function,
+  tag: Tag,
   props: Record<string, any> | null,
   _key?: string,
   _isStaticChildren?: boolean,
   _source?: any,
   _self?: any
-): HTMLElement | DocumentFragment {
+): HTMLElement | SVGElement | DocumentFragment {
   // 处理 Fragment
   if (tag === Fragment) {
     return Fragment(props || {});
@@ -145,7 +191,7 @@ export function Fragment(props: { children?: Child | Child[] }): DocumentFragmen
 /**
  * 递归添加子元素
  */
-function appendChildren(parent: HTMLElement | DocumentFragment, children: Child[]) {
+function appendChildren(parent: HTMLElement | SVGElement | DocumentFragment, children: Child[]) {
   for (const child of children) {
     if (child == null || typeof child === "boolean") {
       continue;

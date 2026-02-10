@@ -1,4 +1,4 @@
-import { defineComponent, ComponentDefinition } from "@actview/core";
+import { defineComponent } from "@actview/core";
 
 /**
  * MyInput 输入框组件
@@ -66,7 +66,7 @@ export const inputRender = (props: MyInputProps) => {
   );
 };
 
-export const MyInput: ComponentDefinition = defineComponent({
+export const MyInput = defineComponent({
   name: "MyInput",
   render: inputRender
 });

@@ -58,3 +58,31 @@ resolveComponents();
 
 ### 待解决问题
 [ ] 自定义组件嵌套自定义组件样式失效
+
+
+
+
+1、html load
+2、custom components register
+3、custom components resolve(use attr value)
+4、custom components render
+5、custom components mount
+6、options create(use ref value)
+7、options mount
+
+
+
+一种结构固定的组件 模板渲染(通过option配置组件及组件内部的属性、事件等;view = f(option))
+- 手动配置，然后代理到dom
+
+一种结构可变的组件 render函数构造(view = f(state))
+- 解析自定义标签
+- 通过函数调用
+
+
+parse html => 解析自定义标签
+提取props、插槽、事件 => option
+render => 生成DOM结构
+模板与插槽合并 => 生成DOM结构
+绑定事件 =》 合并DOM结构
+
