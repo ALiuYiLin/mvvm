@@ -96,7 +96,9 @@ export function createElement(
         // 事件绑定，如 onClick -> click
         const eventName = key.slice(2).toLowerCase();
         element.addEventListener(eventName, value);
-      } else {
+      } else if (value === true) {
+        element.setAttribute(key, "");
+      } else if (value !== false && value != null) {
         element.setAttribute(key, String(value));
       }
     }
