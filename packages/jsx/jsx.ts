@@ -3,13 +3,7 @@
 export namespace JSX {
   export type Element = HTMLElement | SVGElement | Text | DocumentFragment;
   
-  export interface ElementClass {
-    render?: (...args: any[]) => any;
-  }
 
-  export interface ElementAttributesProperty {
-    props: {};
-  }
 
   export interface IntrinsicElements {
     // HTML 元素
@@ -70,13 +64,7 @@ export namespace JSX {
 
 type Child = HTMLElement | SVGElement | Text | string | number | boolean | null | undefined | Child[];
 
-/** 对象组件类型（如 ComponentDefinition） */
-type ObjectComponent = {
-  render?: (props: Record<string, any>, ...args: any[]) => any;
-  name?: string;
-};
-
-type Tag = string | Function | ObjectComponent;
+type Tag = string | Function;
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SVG_TAGS = new Set([
@@ -106,20 +94,6 @@ export function createElement(
   // 如果 tag 是函数组件
   if (typeof tag === "function") {
     return tag({ ...props, children: allChildren });
-  }
-
-  // 如果 tag 是对象组件（如 ComponentDefinition）
-  if (typeof tag === "object" && tag !== null && typeof tag.render === "function") {
-    const result = tag.render({ ...props, children: allChildren });
-    if (result instanceof DocumentFragment || result instanceof HTMLElement || result instanceof SVGElement) {
-      return result;
-    }
-    if (typeof result === "string") {
-      const wrapper = document.createElement("div");
-      wrapper.innerHTML = result.trim();
-      return wrapper.firstElementChild as HTMLElement || wrapper;
-    }
-    return document.createDocumentFragment();
   }
 
   // 创建 DOM 元素（SVG 元素需要使用命名空间）
