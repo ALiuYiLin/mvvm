@@ -77,7 +77,7 @@ function compileElement(el: Element, option: Option) {
   updateFn();
   setCurrentUpdateFn(null);
 
-  bindListeners(el, listeners);
+  bindListeners(currentEl, listeners);
 }
 
 export function compile(option: Option) {
