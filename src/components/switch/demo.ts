@@ -4,12 +4,16 @@ import {
   Option,
   registerComponents,
   resolveComponents,
+  compileCustom,
 } from "@actview/core";
 import "./index.css";
-import { MySwitch, switchRender } from "./index";
+import { MySwitch } from "./index";
 
 registerComponents([MySwitch]);
-resolveComponents();
+const oops = resolveComponents();
+oops.forEach((item) => {
+  compileCustom(item);
+});
 
 // 交互演示：切换开关状态
 const isOn = ref(false);
@@ -22,13 +26,7 @@ function handleToggle() {
 const options: Option[] = [
   {
     selector: '[data-id="demo-switch"]',
-    listeners: [
-      {
-        type: "click",
-        callback: handleToggle,
-      },
-    ],
-    render:()=> switchRender({checked:isOn.value? true:undefined})
+    render:()=> MySwitch({checked:isOn.value? true:undefined,"data-id":"demo-switch",onToggle:handleToggle})
   },
   {
     selector: "#switch-status",

@@ -23,6 +23,7 @@ export function compile(option: Option) {
       }
     }
     if(render && typeof render === 'function'){
+      console.log('render: ', render);
       const result = render();
 
       if(typeof result === 'string') {

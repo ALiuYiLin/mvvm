@@ -4,5 +4,5 @@ export { watchEffect } from "./watchEffect"
 export { watch } from "./watch"
 export { reactive } from "./reactive"
 export { compile, compileCustom } from "./compile"
-export { defineComponent, resolveComponents, registerComponents, getComponent } from "./component"
+export { registerComponent, resolveComponents, registerComponents, getComponent } from "./component"
 export * from './types'

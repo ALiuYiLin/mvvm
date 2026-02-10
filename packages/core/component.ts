@@ -4,40 +4,28 @@
 
 import { ParsedOption } from "./types";
 
-export interface ComponentDefinition {
-    /** 组件名称（自定义标签名，如 MyButton） */
-    name: string;
-    /** 组件模板 - HTML 字符串或选择器 */
-    template?: string;
-    /** render 函数 - 接收 props，返回 DOM 元素（支持 JSX） */
-    render?: (props: Record<string, string>, slots: Map<string, Node[]>) => HTMLElement | DocumentFragment | Text | string | SVGElement;
-    /** 组件样式（可选） */
-    style?: string;
-    /** 组件初始化回调 */
-    setup?: (el: HTMLElement, props: Record<string, string>) => void;
-}
+/** render 函数类型 */
+export type RenderFn = (props: Record<string, any>, slots: Map<string, Node[]>) => HTMLElement | DocumentFragment | Text | string | SVGElement;
 
-/** 可作为 JSX 标签使用的组件类型 */
-export type JsxComponent = ComponentDefinition & {
-    (props?: Record<string, any>): any;
-};
-
-// 组件注册表
-const componentRegistry = new Map<string, ComponentDefinition>();
+// 组件注册表：组件名（小写） -> render 函数
+const componentRegistry = new Map<string, RenderFn>();
 
 /**
- * 注册组件
+ * 注册单个组件（用函数名作为组件标签名）
  */
-export function defineComponent(definition: ComponentDefinition): JsxComponent {
-    // 统一转为小写存储（因为浏览器会将自定义标签名转为小写）
-    componentRegistry.set(definition.name.toLowerCase(), definition);
-    return definition as JsxComponent;
+export function registerComponent(render: RenderFn): void {
+    const name = render.name;
+    if (!name) {
+        console.error('registerComponent: render function must be a named function');
+        return;
+    }
+    componentRegistry.set(name.toLowerCase(), render);
 }
 
 /**
  * 获取已注册的组件
  */
-export function getComponent(name: string): ComponentDefinition | undefined {
+export function getComponent(name: string): RenderFn | undefined {
     return componentRegistry.get(name.toLowerCase());
 }
 
@@ -126,121 +114,6 @@ function getProps(element: Element): Record<string, string> {
     return props;
 }
 
-/**
- * 创建组件实例
- * @param definition 组件定义
- * @param slots 插槽内容
- * @param props 组件属性
- */
-function createComponentInstance(
-    definition: ComponentDefinition,
-    slots: Map<string, Node[]>,
-    props: Record<string, string>
-): HTMLElement {
-    let templateElement: HTMLElement;
-
-    if (definition.render) {
-        // render 函数模式：传入 props，返回带 <slot> 的 DOM
-        const result = definition.render(props,slots);
-        if (typeof result === 'string') {
-            const wrapper = document.createElement('div');
-            wrapper.innerHTML = result.trim();
-            templateElement = wrapper.firstElementChild as HTMLElement || wrapper;
-        } else if (result instanceof DocumentFragment) {
-            // Fragment 需要包一层
-            const wrapper = document.createElement('div');
-            wrapper.appendChild(result);
-            templateElement = wrapper;
-        } else if (result instanceof HTMLElement) {
-            templateElement = result;
-        } else {
-            const wrapper = document.createElement('span');
-            wrapper.appendChild(result);
-            templateElement = wrapper;
-        }
-    } else if (definition.template) {
-        if (definition.template.startsWith('#')) {
-            // 选择器模式
-            const templateSource = document.querySelector(definition.template);
-            if (!templateSource) {
-                console.error(`Component template not found: ${definition.template}`);
-                return document.createElement('div');
-            }
-            templateElement = templateSource.cloneNode(true) as HTMLElement;
-            templateElement.removeAttribute('id');
-        } else {
-            // HTML 字符串模式
-            const wrapper = document.createElement('div');
-            wrapper.innerHTML = definition.template.trim();
-            templateElement = wrapper.firstElementChild as HTMLElement || wrapper;
-        }
-    } else {
-        console.error(`Component "${definition.name}" has no template or render function.`);
-        return document.createElement('div');
-    }
-
-    // 填充插槽（替换模板中的 <slot> 元素）
-    fillSlots(templateElement, slots);
-
-    // 调用 setup（如果有）
-    if (definition.setup) {
-        definition.setup(templateElement, props);
-    }
-
-    // 应用通用 props 到元素属性（class, style 等）
-    applyProps(templateElement, props);
-
-    return templateElement;
-}
-
-/**
- * 填充插槽
- */
-function fillSlots(element: HTMLElement, slots: Map<string, Node[]>): void {
-    // 查找所有 <slot> 元素
-    const slotElements = element.querySelectorAll('slot');
-    
-    slotElements.forEach(slotEl => {
-        const slotName = slotEl.getAttribute('name') || 'default';
-        const slotContent = slots.get(slotName);
-
-        if (slotContent && slotContent.length > 0) {
-            // 有内容，替换 slot
-            const fragment = document.createDocumentFragment();
-            slotContent.forEach(node => fragment.appendChild(node.cloneNode(true)));
-            slotEl.replaceWith(fragment);
-        } else {
-            // 无内容，使用 slot 的默认内容或移除
-            const defaultContent = slotEl.innerHTML.trim();
-            if (defaultContent) {
-                // 保留默认内容
-                const span = document.createElement('span');
-                span.innerHTML = defaultContent;
-                slotEl.replaceWith(...Array.from(span.childNodes));
-            } else {
-                // 移除空 slot
-                slotEl.remove();
-            }
-        }
-    });
-}
-
-/**
- * 应用 props 到元素
- */
-function applyProps(element: HTMLElement, props: Record<string, string>): void {
-    // 处理 class 合并
-    if (props.class) {
-        element.classList.add(...props.class.split(' ').filter(Boolean));
-    }
-
-    // 处理 style 合并
-    if (props.style) {
-        element.setAttribute('style', (element.getAttribute('style') || '') + ';' + props.style);
-    }
-
-    // 不要将组件特有的 props 传递到 DOM（如 type, size 等由 setup 处理）
-}
 
 
 /**
@@ -251,20 +124,20 @@ export function resolveComponents(root: Element = document.body) {
     const options: ParsedOption[] = []
 
     // 判断 root 本身是否为自定义组件
-    const rootDef = componentRegistry.get(root.tagName.toLowerCase());
-    if (rootDef) {
+    const rootRender = componentRegistry.get(root.tagName.toLowerCase());
+    if (rootRender) {
         const slots = parseSlots(root);
         const props = getProps(root);
         options.push({
             el: root,
             props,
             slots,
-            render: rootDef.render
+            render: rootRender
         });
     }
 
     // 遍历所有已注册的组件
-    componentRegistry.forEach((definition, name) => {
+    componentRegistry.forEach((render, name) => {
         // 查找所有该组件的实例（浏览器会将标签名转为小写）
         const customElements = root.querySelectorAll(name.toLowerCase());
         
@@ -272,16 +145,13 @@ export function resolveComponents(root: Element = document.body) {
             // 解析插槽
             const slots = parseSlots(customElement);
 
-            // 先递归解析插槽内的子组件（深度优先，子组件排在前面）
-            // resolveSlotComponents(slots, options);
-
             // 获取 props
             const props = getProps(customElement);
             options.push({
                 el: customElement,
                 props,
                 slots,
-                render: definition.render
+                render
             })
         });
     });
@@ -289,8 +159,8 @@ export function resolveComponents(root: Element = document.body) {
 }
 
 /**
- * 批量注册组件并解析
+ * 批量注册组件
  */
-export function registerComponents(definitions: ComponentDefinition[]): void {
-    definitions.forEach(def => defineComponent(def));
+export function registerComponents(renders: RenderFn[]): void {
+    renders.forEach(render => registerComponent(render));
 }

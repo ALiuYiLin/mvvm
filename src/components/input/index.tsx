@@ -1,5 +1,3 @@
-import { defineComponent } from "@actview/core";
-
 /**
  * MyInput 输入框组件
  *
@@ -32,7 +30,7 @@ export type MyInputProps = {
   "data-id"?: string;
 };
 
-export const inputRender = (props: MyInputProps) => {
+export const MyInput = (props: MyInputProps) => {
   const kls = [
     "input-wrapper",
     props.type ? `input-${props.type}` : "",
@@ -65,8 +63,3 @@ export const inputRender = (props: MyInputProps) => {
     </div>
   );
 };
-
-export const MyInput = defineComponent({
-  name: "MyInput",
-  render: inputRender
-});

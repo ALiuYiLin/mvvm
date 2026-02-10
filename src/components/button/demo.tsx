@@ -10,7 +10,6 @@ import './index.css'
 import { MyButton } from './index';
 import { MyAddIcon } from "../svg-icon";
 import { compileCustom } from "@actview/core";
-
 registerComponents([MyButton, MyAddIcon]);
 // 解析页面中的自定义组件（在 DOM 解析完成后执行）
 const oops = resolveComponents();
@@ -40,8 +39,9 @@ const options: Option[] = [
         size="lg"
         data-id="counter-btn"
         onClick={handleIncrement}
-        text="点击增加"
       >
+        点击增加
+        <p>111</p>
       </MyButton>
     ),
   },

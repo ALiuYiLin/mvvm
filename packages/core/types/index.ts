@@ -14,8 +14,8 @@ export type ParsedOption = {
   el: Element;
   props: Record<string, string>;
   slots: Map<string, Node[]>;
-  render?: (
-    props: Record<string, string>,
+  render: (
+    props: Record<string, any>,
     slots: Map<string, Node[]>
   ) => string | HTMLElement | Text | DocumentFragment | SVGElement;
 };
@@ -31,4 +31,4 @@ export type Option = {
   children?: Option[];
 };
 
-export type { ComponentDefinition } from "../component";
+export type { RenderFn } from "../component";

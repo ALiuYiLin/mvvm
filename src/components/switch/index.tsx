@@ -1,5 +1,3 @@
-import { defineComponent } from "@actview/core";
-
 /**
  * MySwitch 开关组件
  *
@@ -24,9 +22,10 @@ export type MySwitchProps = {
   "label-on"?: string;
   "label-off"?: string;
   "data-id"?: string;
+  onToggle?: () => void;
 };
 
-export const switchRender = (props: MySwitchProps) => {
+export const MySwitch = (props: MySwitchProps) => {
   const kls = [
     "switch",
     props.type ? `switch-${props.type}` : "switch-primary",
@@ -38,7 +37,7 @@ export const switchRender = (props: MySwitchProps) => {
     .join(" ");
 
   return (
-    <div className={kls} tabIndex={0} role="switch" data-id={props["data-id"]}>
+    <div className={kls} tabIndex={0} role="switch" data-id={props["data-id"]} onClick={props.onToggle}>
       <div className="switch-handle">
         <slot></slot>
       </div>
@@ -52,8 +51,3 @@ export const switchRender = (props: MySwitchProps) => {
     </div>
   );
 };
-
-export const MySwitch = defineComponent({
-  name: "MySwitch",
-  render: switchRender,
-});
