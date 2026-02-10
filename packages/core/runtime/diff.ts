@@ -25,7 +25,10 @@ export function diff(oldNode: Node, newNode: Node): Node {
     // 3.1 更新属性
     updateAttributes(oldNode, newNode);
 
-    // 3.2 更新子节点
+    // 3.2 更新事件监听器
+    updateListeners(oldNode, newNode);
+
+    // 3.3 更新子节点
     updateChildren(oldNode, newNode);
     
     return oldNode;
@@ -82,6 +85,29 @@ function updateAttributes(oldNode: HTMLElement, newNode: HTMLElement) {
       }
     }
   }
+}
+
+function updateListeners(oldNode: HTMLElement, newNode: HTMLElement) {
+  const oldListeners = (oldNode as any)._listeners || {};
+  const newListeners = (newNode as any)._listeners || {};
+
+  // 移除旧的不再存在的或已改变的
+  for (const [name, listener] of Object.entries(oldListeners)) {
+    if (!newListeners[name] || newListeners[name] !== listener) {
+      oldNode.removeEventListener(name, listener as EventListener);
+      delete oldListeners[name];
+    }
+  }
+
+  // 添加新的
+  for (const [name, listener] of Object.entries(newListeners)) {
+    if (!oldListeners[name]) {
+      oldNode.addEventListener(name, listener as EventListener);
+      oldListeners[name] = listener;
+    }
+  }
+  
+  (oldNode as any)._listeners = oldListeners;
 }
 
 function updateChildren(oldParent: HTMLElement, newParent: HTMLElement) {

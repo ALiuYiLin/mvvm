@@ -116,6 +116,9 @@ export function createElement(
         // 事件绑定，如 onClick -> click
         const eventName = key.slice(2).toLowerCase();
         element.addEventListener(eventName, value);
+        // 记录 listener 以便 diff
+        (element as any)._listeners = (element as any)._listeners || {};
+        (element as any)._listeners[eventName] = value;
       } else if (value === true) {
         element.setAttribute(key, "");
       } else if (value !== false && value != null) {
