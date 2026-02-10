@@ -1,65 +1,88 @@
-import { Option, ParsedOption } from "./types";
-import $ from "jquery";
+import { Option, ParsedOption, Listener } from "./types";
 import { setCurrentUpdateFn } from "./state";
 import { resolveComponents } from "./component";
 
-export function compile(option: Option) {
-  const { selector, show, text, listeners,render, value } = option;
+type RenderResult = string | HTMLElement | Text | DocumentFragment | SVGElement;
 
-  const element = $(selector);
+/** 绑定显隐逻辑 */
+function bindShow(el: HTMLElement, show: boolean | (() => boolean) | undefined) {
+  if (show === undefined) return;
+  const val = typeof show === "function" ? show() : show;
+  el.style.display = val === false ? "none" : "";
+}
 
-  // 用于追踪 render 替换后的当前 DOM 元素
-  let currentEl: Element | null = element[0] || null;
+/** 绑定文本内容 */
+function bindText(el: Element, text: string | (() => string) | undefined) {
+  if (text === undefined) return;
+  el.textContent = typeof text === "function" ? text() : text;
+}
+
+/** 绑定 value（input/textarea） */
+function bindValue(el: Element, value: (() => string) | undefined) {
+  if (!value) return;
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    el.value = value();
+  }
+}
+
+/** 执行 render 并替换当前元素，返回新的跟踪元素 */
+function bindRender(currentEl: Element, render: (() => RenderResult) | undefined): Element {
+  if (!render || typeof render !== "function") return currentEl;
+
+  const result = render();
+
+  if (typeof result === "string") {
+    const temp = document.createElement("div");
+    temp.innerHTML = result.trim();
+    const newEl = temp.firstElementChild;
+    if (newEl) {
+      currentEl.replaceWith(newEl);
+      return newEl;
+    }
+  } else if (result instanceof DocumentFragment) {
+    if (currentEl.parentNode) {
+      const children = Array.from(result.childNodes);
+      currentEl.replaceWith(result);
+      return (children.find(n => n instanceof Element) as Element) || currentEl;
+    }
+  } else if (result instanceof Element) {
+    currentEl.replaceWith(result);
+    return result;
+  }
+  return currentEl;
+}
+
+/** 绑定事件监听 */
+function bindListeners(el: Element, listeners: Listener[] | undefined) {
+  if (!listeners || listeners.length === 0) return;
+  listeners.forEach((listener) => {
+    el.addEventListener(listener.type, listener.callback as EventListener);
+  });
+}
+
+/** 编译单个元素 */
+function compileElement(el: Element, option: Option) {
+  const { show, text, listeners, render, value } = option;
+
+  let currentEl: Element = el;
 
   const updateFn = () => {
-    const showValue = typeof show === "function" ? show() : show;
-    const textValue = typeof text === "function" ? text() : text;
-    if (textValue !== undefined) element.text(textValue);
-    showValue || showValue === undefined ? element.show() : element.hide();
-    if (value) {
-      const el = element[0];
-      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-        el.value = value();
-      }
-    }
-    if(render && typeof render === 'function'){
-      console.log('render: ', render);
-      const result = render();
-
-      if(typeof result === 'string') {
-        const temp = document.createElement('div');
-        temp.innerHTML = result.trim();
-        const newEl = temp.firstElementChild;
-        if (newEl && currentEl) {
-          currentEl.replaceWith(newEl);
-          currentEl = newEl;
-        }
-      } else if(result instanceof DocumentFragment) {
-        // Fragment：用其子节点替换当前元素
-        if (currentEl && currentEl.parentNode) {
-          const children = Array.from(result.childNodes);
-          currentEl.replaceWith(result);
-          // 追踪第一个元素节点用于下次替换
-          currentEl = children.find(n => n instanceof Element) as Element || null;
-        }
-      } else if(result instanceof Element) {
-        if (currentEl) {
-          currentEl.replaceWith(result);
-          currentEl = result;
-        }
-      }
-    }
+    bindShow(currentEl as HTMLElement, show);
+    bindText(currentEl, text);
+    bindValue(currentEl, value);
+    currentEl = bindRender(currentEl, render);
   };
 
   setCurrentUpdateFn(updateFn);
   updateFn();
   setCurrentUpdateFn(null);
 
-  if (listeners && listeners.length > 0) {
-    listeners.forEach((listener) => {
-      element.on(listener.type, listener.callback);
-    });
-  }
+  bindListeners(el, listeners);
+}
+
+export function compile(option: Option) {
+  const els = document.querySelectorAll(option.selector);
+  els.forEach((el) => compileElement(el, option));
 }
 
 export function compileCustom(option: ParsedOption){
