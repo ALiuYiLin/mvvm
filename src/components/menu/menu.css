@@ -1,0 +1,18 @@
+.sidebar-menu { list-style: none; padding: 0 16px; }
+.sidebar-menu li { margin-bottom: 4px; }
+.sidebar-menu li a {
+  display: flex; align-items: center; gap: 14px; position: relative;
+  padding: 12px 16px; font-size: 15px; font-weight: 500; color: #6b7280;
+  text-decoration: none; transition: all 0.2s; border-radius: 10px;
+}
+.sidebar-menu li a:hover { background: #f5f5f5; color: #374151; }
+.sidebar-menu li a.active {
+  color: #10b981; background: transparent;
+}
+.sidebar-menu li a.active::after {
+  content: ''; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+}
+.sidebar-menu li a .icon {
+  font-size: 18px; width: 22px; text-align: center; flex-shrink: 0;
+}

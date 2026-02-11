@@ -2,6 +2,7 @@ import { App, Option } from "@actview/core";
 import { Home } from "./pages/home";
 import { NotFound } from "./pages/notfound";
 import { Router } from "@actview/router";
+import { Menu, MenuGroup } from "./components/menu";
 
 
 const routes = [
@@ -10,6 +11,15 @@ const routes = [
   { path: "/not-found", component: () => NotFound() },
 ]
 const router = new Router({routes});
+
+const menus: MenuGroup[] = [
+  { group: '导航', items: [
+    { path: '/home', label: '首页', icon: '🏠' },
+  ]},
+  { group: '示例', items: [
+    { path: '/not-found', label: '404 页面', icon: '🚫' },
+  ]},
+];
 
 const app = new App();
 const options: Option[] = [
@@ -25,6 +35,10 @@ const options: Option[] = [
            href="/not-found">Not Found</a>
       </div>
     )
+  },
+  {
+    selector: "#sidebar",
+    render: () => <div id="sidebar"><Menu menus={menus} router={router} /></div>
   },
   {
     selector: "#app",
