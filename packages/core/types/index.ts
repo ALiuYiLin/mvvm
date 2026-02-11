@@ -22,6 +22,7 @@ export type ParsedOption = {
 
 export type Option = {
   selector: string;
+  ref?: Ref<Element | null>;
   show?: boolean | (() => boolean);
   text?: string | (() => string);
   value?: () => string;

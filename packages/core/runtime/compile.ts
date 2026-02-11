@@ -63,7 +63,7 @@ function bindListeners(el: Element, listeners: Listener[] | undefined) {
 
 /** 编译单个元素 */
 function compileElement(el: Element, option: Option) {
-  const { show, text, listeners, render, value } = option;
+  const { show, text, listeners, render, value, ref } = option;
 
   let currentEl: Element = el;
 
@@ -72,6 +72,7 @@ function compileElement(el: Element, option: Option) {
     bindText(currentEl, text);
     bindValue(currentEl, value);
     currentEl = bindRender(currentEl, render);
+    if(ref !== undefined) ref.value = currentEl;
   };
 
   setCurrentUpdateFn(updateFn);
