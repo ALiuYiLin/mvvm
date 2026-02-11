@@ -1,7 +1,7 @@
 import { Ref } from "../types";
 import { eventBus } from "./event";
 import { getReactiveTriggerRef } from "./reactive";
-import { setCurrentUpdateFn } from "./state";
+import { setCurrentUpdateFn } from "../hooks";
 
 function isRefLike<T = unknown>(value: unknown): value is Ref<T> {
   return !!value && typeof value === 'object' && (value as any).__isRef === true

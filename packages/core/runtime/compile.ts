@@ -1,6 +1,6 @@
 import { Option, ParsedOption, Listener } from "../types";
-import { setCurrentUpdateFn } from "../reactivity/state";
 import { resolveComponents } from "./component";
+import { setCurrentUpdateFn } from "../hooks";
 import { diff } from "./diff";
 
 type RenderResult = string | HTMLElement | Text | DocumentFragment | SVGElement;

@@ -1,6 +1,6 @@
 import { Ref } from "../types";
 import { eventBus } from "./event";
-import { getCurrentUpdateFn } from "./state";
+import { getCurrentUpdateFn } from "../hooks";
 export function ref<T>(value: T): Ref<T> {
   const obj = { value, __isRef: true };
   const state = new Proxy(obj, {

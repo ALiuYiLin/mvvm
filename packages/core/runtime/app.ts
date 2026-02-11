@@ -8,6 +8,11 @@ import { RenderFn, Option } from "../types";
 
 let appInstance: App | null = null;
 
+/** 内部使用：获取 appInstance 引用 */
+export function getAppInstance(): App | null {
+  return appInstance;
+}
+
 export class App {
   private _customResolved = false;
 
@@ -50,22 +55,4 @@ export class App {
     });
     return this;
   }
-}
-
-/**
- * 获取 App 单例，未创建时抛出错误
- */
-export function useApp(): App {
-  if (!appInstance) {
-    throw new Error("App instance not created yet. Call `new App()` first.");
-  }
-  return appInstance;
-}
-
-
-export function useResolveOptions(options: Option[]){
-  queueMicrotask(() => {
-    const app = useApp();
-    app.resolveOptions(options);
-  })
 }

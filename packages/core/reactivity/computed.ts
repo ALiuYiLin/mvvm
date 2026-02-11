@@ -1,6 +1,6 @@
 import { Ref } from "../types";
 import { ref } from "./ref"
-import { setCurrentUpdateFn } from "./state"
+import { setCurrentUpdateFn } from "../hooks"
 
 export function computed<T>(computedFn: ()=> T): Ref<T>{
   const computedRef = ref<T | null>(null)
