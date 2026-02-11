@@ -1,31 +1,36 @@
-import { App, Option, ref } from "@actview/core";
-import { HomeComponent } from "./pages/home/component";
+import { App, Option } from "@actview/core";
+import { Home } from "./pages/home";
+import { NotFound } from "./pages/notfound";
 import { Router } from "@actview/router";
 
 
-
-// const router = new Router();
-// router.init();
-const count = ref(0);
-
 const routes = [
-  { path: "/home", component: () => HomeComponent() },
-  { path: "/not-found", component: () => <div>Not Found</div> },
+  { path: "/home", component: () => Home() },
+  { path: "/", component: () => Home() },
+  { path: "/not-found", component: () => NotFound() },
 ]
 const router = new Router({routes});
 
 const app = new App();
 const options: Option[] = [
   {
+    selector: "#navbar .nav-links",
+    render: () => (
+      <div style="display:flex;gap:24px;">
+        <a class={router.route.value?.path === '/home' ? 'active' : ''}
+           onClick={(e: MouseEvent) => { e.preventDefault(); router.push('/home'); }}
+           href="/home">Home</a>
+        <a class={router.route.value?.path === '/not-found' ? 'active' : ''}
+           onClick={(e: MouseEvent) => { e.preventDefault(); router.push('/not-found'); }}
+           href="/not-found">Not Found</a>
+      </div>
+    )
+  },
+  {
     selector: "#app",
     render: () => (
       <div>
-        <h1>欢迎来到ActView</h1>
-        <p>这是一个简单的示例</p>
-        <p>当前路由：{router.route.value?.path}</p>
-        <button onClick={() => router.push('/home')}>Home</button>
-        <button onClick={() => router.push('/not-found')}>Not Found</button>
-        <button onClick={() => count.value++}>count ++</button>
+        <p style="margin-bottom:12px;color:#999;font-size:13px;">当前路由：{router.route.value?.path}</p>
         {router.route.value?.component()}
       </div>
     )
