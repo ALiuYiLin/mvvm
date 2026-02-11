@@ -1,0 +1,41 @@
+{
+  "name": "@actview/core",
+  "version": "1.0.3",
+  "description": "Core reactive system for Actview - ref, reactive, computed, watch, compile",
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "import": "./index.ts",
+      "types": "./index.ts"
+    }
+  },
+  "files": [
+    "*.ts",
+    "types/"
+  ],
+  "keywords": [
+    "actview",
+    "reactive",
+    "ref",
+    "computed",
+    "watch"
+  ],
+  "author": "scliuyilin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "homepage": "",
+  "bugs": {
+    "url": ""
+  },
+  "dependencies": {
+    "jquery": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/jquery": "^3.5.33"
+  }
+}
