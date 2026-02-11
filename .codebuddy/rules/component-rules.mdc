@@ -1,0 +1,54 @@
+---
+description: 
+alwaysApply: true
+enabled: true
+updatedAt: 2026-02-11T09:43:49.103Z
+provider: 
+---
+
+# ActView 组件封装规则
+
+## Option.render 重塑规则
+
+`app.resolveOptions(options)` 中每个 Option 的 `render` 方法会**替换** `selector` 选中的整个 DOM 元素，而非仅替换其 innerHTML。
+
+因此，`render` 返回的 JSX **必须在最外层保留原始 DOM 元素的结构**（标签名、id、class 等属性），否则页面布局和样式会丢失。
+
+### 正确写法
+
+```tsx
+// selector 选中的是 <div id="sidebar">，render 最外层必须保留 <div id="sidebar">
+{
+  selector: "#sidebar",
+  render: () => <div id="sidebar"><Menu menus={menus} router={router} /></div>
+}
+```
+
+### 错误写法
+
+```tsx
+// 丢失了原始元素的 id="sidebar"，导致布局样式失效
+{
+  selector: "#sidebar",
+  render: () => <Menu menus={menus} router={router} />
+}
+```
+
+## 组件文件结构
+
+每个组件放在 `src/components/<name>/` 目录下，包含：
+
+- `index.ts` — 入口文件，负责 re-export 组件和类型
+- `<name>.tsx` — 组件实现（导出组件函数 + 类型），在此文件中引入样式 `import "./<name>.css"`
+- `<name>.css` — 组件样式
+
+### 示例：Menu 组件
+
+```
+src/components/menu/
+  index.ts      — export { Menu } from "./menu.tsx"
+  menu.tsx      — 组件实现 + import "./menu.css"
+  menu.css      — 组件样式
+```
+
+组件的样式应内聚在组件自身的 CSS 文件中，不要放在 `index.html` 的全局 `<style>` 里。
