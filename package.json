@@ -41,6 +41,8 @@
   "dependencies": {
     "@actview/core": "workspace:*",
     "@actview/jsx": "workspace:*",
+    "@actview/router": "workspace:*",
+    "actview": "workspace:*",
     "jquery": "^4.0.0"
   }
 }
