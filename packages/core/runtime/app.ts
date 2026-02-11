@@ -6,8 +6,17 @@ import { registerComponent, resolveComponents } from "./component";
 import { compile, compileCustom } from "./compile";
 import { RenderFn, Option } from "../types";
 
+let appInstance: App | null = null;
+
 export class App {
   private _customResolved = false;
+
+  constructor() {
+    if (appInstance) {
+      return appInstance;
+    }
+    appInstance = this;
+  }
 
   /**
    * 注册组件（render 函数，函数名即组件标签名）
@@ -41,4 +50,22 @@ export class App {
     });
     return this;
   }
+}
+
+/**
+ * 获取 App 单例，未创建时抛出错误
+ */
+export function useApp(): App {
+  if (!appInstance) {
+    throw new Error("App instance not created yet. Call `new App()` first.");
+  }
+  return appInstance;
+}
+
+
+export function useResolveOptions(options: Option[]){
+  queueMicrotask(() => {
+    const app = useApp();
+    app.resolveOptions(options);
+  })
 }
