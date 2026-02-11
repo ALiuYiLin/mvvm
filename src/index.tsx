@@ -1,4 +1,5 @@
-import { App, computed, Option, reactive, ref } from "@actview/core";
+import { App, computed, Option, ref } from "@actview/core";
+import { HomeComponent } from "./pages/home/component";
 
 // 核心就这么多
 class Router {
@@ -26,22 +27,35 @@ class Router {
 
 // const router = new Router();
 // router.init();
+const count = ref(0);
 
 const useRouter = () => {
   const routes = [
-    { path: "/home", component: () => <div>Home</div> },
+    { path: "/home", component: () => HomeComponent() },
     { path: "/not-found", component: () => <div>Not Found</div> },
   ]
 
-  const currentRoutePath = ref('');
+  const currentRoutePath = ref('/home');
   const route = computed(() => {
     return routes.find(r => r.path === currentRoutePath.value);
   })
 
   function push(path: string) {
     history.pushState(null, '', path);
+    update();
+  }
+
+  function update() {
+    const path = location.pathname;
     currentRoutePath.value = path;
   }
+
+  function init() {
+    window.addEventListener('popstate', () => update());
+    update();
+  }
+
+  init();
 
   return {
     route,
@@ -52,7 +66,6 @@ const useRouter = () => {
 
 const app = new App();
 const {route, push} = useRouter();
-
 const options: Option[] = [
   {
     selector: "#app",
@@ -63,6 +76,7 @@ const options: Option[] = [
         <p>当前路由：{route.value?.path}</p>
         <button onClick={() => push('/home')}>Home</button>
         <button onClick={() => push('/not-found')}>Not Found</button>
+        <button onClick={() => count.value++}>count ++</button>
         {route.value?.component()}
       </div>
     )
