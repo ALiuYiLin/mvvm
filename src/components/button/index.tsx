@@ -14,25 +14,28 @@
  * - disabled: 禁用状态
  * - loading: 加载状态
  */
-
+import './index.css'
 export type MyButtonProps = {
   type?: string;
   size?: string;
   disabled?: boolean;
   loading?: boolean;
   onClick?: () => void;
+  class?: string;
   'data-id'?: string;
-  children?: (Node | string)[];
+  children?: string | Node | (Node | string)[];
+  before?: Node[];
+  after?: Node[];
 };
 
-export const MyButton = (props: MyButtonProps, slots?: Map<string, Node[]>) => {
+export const MyButton = (props: MyButtonProps) => {
   console.log('props: ', props);
-    const kls = ['btn', props.type ? `btn-${props.type}` : '', props.size ? `btn-${props.size}` : '', props.disabled !== undefined ? 'btn-disabled' : '', props.loading !== undefined ? 'btn-loading' : ''].filter(Boolean).join(' ');
+    const kls = ['btn', props.type ? `btn-${props.type}` : '', props.size ? `btn-${props.size}` : '', props.disabled !== undefined ? 'btn-disabled' : '', props.loading !== undefined ? 'btn-loading' : '', props.class || ''].filter(Boolean).join(' ');
     return (
       <div className={kls} data-id={props['data-id']} onClick={props.onClick}>
-        {slots?.get('before')}
-        {slots?.get('default') || props.children}
-        {slots?.get('after')}
+        {props.before}
+        {props.children}
+        {props.after}
       </div>
     );
 }
