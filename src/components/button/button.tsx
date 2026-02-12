@@ -14,7 +14,7 @@
  * - disabled: 禁用状态
  * - loading: 加载状态
  */
-import './index.css'
+import './button.css'
 export type MyButtonProps = {
   type?: string;
   size?: string;

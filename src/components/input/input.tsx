@@ -14,10 +14,8 @@
  * - value: 默认值
  * - input-type: text | password | number | email | tel | url（原生 input type）
  * - clearable: 显示清除按钮
- * - prefix-icon: 前缀图标（通过 slot）
- * - suffix-icon: 后缀图标（通过 slot）
  */
-import './index.css'
+import './input.css'
 
 export type MyInputProps = {
   type?: string;

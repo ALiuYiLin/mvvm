@@ -24,7 +24,7 @@ export const Switch = () => {
         },
     ])
     return (
-        <>
+        <div class="switch-demo">
             <div class="section">
                 <h2>开关类型 / Switch Types</h2>
                 <div class="switch-group">
@@ -94,6 +94,6 @@ export const Switch = () => {
                 </div>
                 <p id="switch-status">开关状态: 关闭</p>
             </div>
-        </>
+        </div>
     )
 }
