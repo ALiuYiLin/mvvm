@@ -11,6 +11,9 @@
     "jsx": "react-jsx",
     "jsxImportSource": "@actview/jsx",
     "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
 
 
     /* Bundler mode */
