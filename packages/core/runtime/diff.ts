@@ -22,6 +22,14 @@ export function diff(oldNode: Node, newNode: Node): Node {
 
   // 3. 元素节点处理
   if (oldNode instanceof HTMLElement && newNode instanceof HTMLElement) {
+    // 如果旧节点是组件根元素，由组件的 updateFn 管理子节点更新
+    // 此处只同步根元素的属性，不递归子节点
+    if ((oldNode as any)._componentInstance) {
+      updateAttributes(oldNode, newNode);
+      updateListeners(oldNode, newNode);
+      return oldNode;
+    }
+
     // 3.1 更新属性
     updateAttributes(oldNode, newNode);
 

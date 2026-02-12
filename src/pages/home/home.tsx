@@ -1,30 +1,32 @@
 import { reactive } from '@actview/core';
 import './index.css'
 
-let nextId = 4
-const studentList = reactive([
-  { id: 1, name: '张三', age: 18 },
-  { id: 2, name: '李四', age: 20 },
-  { id: 3, name: '王五', age: 22 },
-])
-
-const names = ['赵六', '孙七', '周八', '吴九', '郑十', '冯十一', '陈十二']
-
-function randomName() {
-  return names[Math.floor(Math.random() * names.length)]
-}
-
-function randomAge() {
-  return Math.floor(Math.random() * 12) + 18
-}
-
 export function Home() {
-  return (
+  // ========== Setup 阶段（只执行一次）==========
+  let nextId = 4
+  const studentList = reactive([
+    { id: 1, name: '张三', age: 18 },
+    { id: 2, name: '李四', age: 20 },
+    { id: 3, name: '王五', age: 22 },
+  ])
+
+  const names = ['赵六', '孙七', '周八', '吴九', '郑十', '冯十一', '陈十二']
+
+  function randomName() {
+    return names[Math.floor(Math.random() * names.length)]
+  }
+
+  function randomAge() {
+    return Math.floor(Math.random() * 12) + 18
+  }
+
+  // ========== 返回 render 函数（每次更新重新执行）==========
+  return () => (
     <div class="container">
-      <h1>列表渲染（无 Key）</h1>
+      <h1>列表渲染 Demo</h1>
       <div class="tip-box">
         <strong>复现步骤：</strong>在下方输入框中随意输入内容，然后点击「头部添加」或「随机排序」，
-        观察输入框中的内容是否跟随数据行正确移动 —— 无 key 时输入状态会错位。
+        观察输入框中的内容是否跟随数据行正确移动。
       </div>
       <div class="action-bar">
         <button onClick={() => studentList.push({ id: nextId++, name: randomName(), age: randomAge() })}>
@@ -60,7 +62,6 @@ export function Home() {
         <tbody>
           {studentList.map((student, index) => (
             <tr key={student.id}>
-            {/* <tr> */}
               <td>{`${student.id}`}</td>
               <td>{student.name}</td>
               <td>{`${student.age}`}</td>

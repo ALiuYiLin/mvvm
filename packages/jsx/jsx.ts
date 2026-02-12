@@ -1,5 +1,23 @@
 // 自定义 JSX 工厂函数
 
+/** 
+ * 组件级更新函数的 getter/setter
+ * 由 @actview/core 的 hooks 模块注入，实现 JSX 层与 core 层的解耦
+ */
+let _getCurrentUpdateFn: (() => (() => void) | null) | null = null;
+let _setCurrentUpdateFn: ((fn: (() => void) | null) => void) | null = null;
+
+/**
+ * 注入 currentUpdateFn 的 getter/setter（由 @actview/core 在初始化时调用）
+ */
+export function injectUpdateFnAccessors(
+  getter: () => (() => void) | null,
+  setter: (fn: (() => void) | null) => void
+) {
+  _getCurrentUpdateFn = getter;
+  _setCurrentUpdateFn = setter;
+}
+
 export namespace JSX {
   export type Element = HTMLElement | SVGElement | Text | DocumentFragment;
   
@@ -107,7 +125,7 @@ export function createElement(
     }
 
     mergedProps.children = defaultChildren;
-    return tag(mergedProps);
+    return mountComponent(tag, mergedProps);
   }
 
   // 创建 DOM 元素（SVG 元素需要使用命名空间）
@@ -187,6 +205,275 @@ export function Fragment(props: { children?: Child | Child[] }): DocumentFragmen
     appendChildren(fragment, childArray);
   }
   return fragment;
+}
+
+/**
+ * 组件实例信息，挂载在根 DOM 元素的 _componentInstance 上
+ */
+interface ComponentInstance {
+  /** 组件函数 */
+  setupFn: Function;
+  /** render 函数（由 setup 返回，或等同于 setupFn） */
+  renderFn: Function;
+  /** 最新 props */
+  props: Record<string, any>;
+  /** 组件当前的根 DOM 元素（Element 模式）或 startAnchor（Fragment 模式） */
+  el: Node | null;
+  /** Fragment 模式下的首尾锚点 */
+  _startAnchor?: Comment;
+  _endAnchor?: Comment;
+  /** 是否为 Fragment 模式 */
+  isFragment: boolean;
+  /** 组件级 updateFn */
+  update: () => void;
+}
+
+/**
+ * 挂载函数组件，创建组件级 updateFn 实现独立的依赖收集和更新
+ * 
+ * 支持两种组件写法：
+ * 
+ * 1. Setup 模式（推荐）—— 组件函数返回一个 render 函数：
+ *    function Home() {
+ *      const list = reactive([...])  // setup 阶段，只执行一次
+ *      return () => <div>...</div>   // render 函数，每次更新重新执行
+ *    }
+ * 
+ * 2. 直接模式（兼容）—— 组件函数直接返回 DOM：
+ *    function Card(props) {
+ *      return <div>{props.title}</div>  // 无状态组件，每次父级更新会重建
+ *    }
+ * 
+ * 原理：
+ * - 暂存父级的 currentUpdateFn
+ * - 设置组件自己的 componentUpdateFn 为 currentUpdateFn
+ * - 执行组件函数 → 如果返回函数则为 setup 模式
+ * - setup 模式下：调用 renderFn 时，组件内部 reactive 数据会收集到 componentUpdateFn
+ * - 恢复父级的 currentUpdateFn
+ * - 数据变化时，只触发 componentUpdateFn → 仅重渲染该组件
+ */
+function mountComponent(tag: Function, mergedProps: Record<string, any>): HTMLElement | SVGElement | DocumentFragment {
+  // 如果没有注入 hooks（core 层未初始化），退回直接调用
+  if (!_getCurrentUpdateFn || !_setCurrentUpdateFn) {
+    const r = tag(mergedProps);
+    if (typeof r === 'function') return r() as HTMLElement | SVGElement | DocumentFragment;
+    return r as HTMLElement | SVGElement | DocumentFragment;
+  }
+
+  const getUpdateFn = _getCurrentUpdateFn;
+  const setUpdateFn = _setCurrentUpdateFn;
+
+  // 组件实例
+  const instance: ComponentInstance = {
+    setupFn: tag,
+    renderFn: tag,
+    props: mergedProps,
+    el: null,
+    isFragment: false,
+    update: null!,
+  };
+
+  // 组件级更新函数
+  const componentUpdateFn = () => {
+    if (!instance.el) return;
+
+    // 切换到自己的 updateFn 以便重新收集依赖
+    const prev = getUpdateFn();
+    setUpdateFn(componentUpdateFn);
+
+    const newResult = instance.renderFn(instance.props);
+
+    setUpdateFn(prev);
+
+    if (instance.isFragment) {
+      patchComponentFragment(instance, newResult as DocumentFragment);
+    } else {
+      const oldEl = instance.el as Element;
+      if (oldEl.parentNode) {
+        diffElement(oldEl, newResult as Element);
+      }
+    }
+  };
+
+  instance.update = componentUpdateFn;
+
+  // 暂存父级 updateFn，切换到组件自己的 updateFn
+  const parentUpdateFn = getUpdateFn();
+  setUpdateFn(componentUpdateFn);
+
+  // 执行组件函数（setup 阶段）
+  const setupResult = tag(mergedProps);
+
+  let domResult: HTMLElement | SVGElement | DocumentFragment;
+
+  if (typeof setupResult === 'function') {
+    // Setup 模式：setupResult 是 render 函数
+    instance.renderFn = setupResult;
+    // 执行 render 函数获取首次 DOM（在 componentUpdateFn 下执行，收集依赖）
+    domResult = setupResult(mergedProps) as HTMLElement | SVGElement | DocumentFragment;
+  } else {
+    // 直接模式：setupResult 就是 DOM
+    domResult = setupResult as HTMLElement | SVGElement | DocumentFragment;
+  }
+
+  // 恢复父级 updateFn
+  setUpdateFn(parentUpdateFn);
+
+  // 在返回的 DOM 上标记组件实例
+  if (domResult instanceof DocumentFragment) {
+    instance.isFragment = true;
+    return setupComponentFragment(instance, domResult);
+  } else {
+    (domResult as any)._componentInstance = instance;
+    instance.el = domResult;
+    return domResult;
+  }
+}
+
+/**
+ * 为 Fragment 类型的组件结果设置锚点追踪
+ * 返回一个包含锚点和内容的 DocumentFragment
+ */
+function setupComponentFragment(instance: ComponentInstance, fragment: DocumentFragment): DocumentFragment {
+  const startAnchor = document.createComment(`component-start`);
+  const endAnchor = document.createComment(`component-end`);
+  
+  instance._startAnchor = startAnchor;
+  instance._endAnchor = endAnchor;
+
+  const wrapper = document.createDocumentFragment();
+  wrapper.appendChild(startAnchor);
+  
+  while (fragment.firstChild) {
+    wrapper.appendChild(fragment.firstChild);
+  }
+  
+  wrapper.appendChild(endAnchor);
+  
+  (startAnchor as any)._componentInstance = instance;
+  instance.el = startAnchor;
+  
+  return wrapper;
+}
+
+/**
+ * 更新 Fragment 类型的组件
+ */
+function patchComponentFragment(instance: ComponentInstance, newFragment: DocumentFragment) {
+  const startAnchor = instance._startAnchor;
+  const endAnchor = instance._endAnchor;
+  
+  if (!startAnchor || !endAnchor || !startAnchor.parentNode) return;
+  
+  const parent = startAnchor.parentNode;
+  
+  // 收集旧子节点（锚点之间）
+  const oldChildren: Node[] = [];
+  let current: Node | null = startAnchor.nextSibling;
+  while (current && current !== endAnchor) {
+    oldChildren.push(current);
+    current = current.nextSibling;
+  }
+  
+  const newChildren = Array.from(newFragment.childNodes);
+  
+  // 简单的 index-based diff（锚点间内容）
+  const maxLen = Math.max(oldChildren.length, newChildren.length);
+  for (let i = 0; i < maxLen; i++) {
+    const oldChild = oldChildren[i];
+    const newChild = newChildren[i];
+    if (!oldChild && newChild) {
+      parent.insertBefore(newChild, endAnchor);
+    } else if (oldChild && !newChild) {
+      parent.removeChild(oldChild);
+    } else if (oldChild && newChild) {
+      diffElement(oldChild, newChild);
+    }
+  }
+}
+
+/**
+ * 简易 diff：在 JSX 层内联一个轻量 diff 实现
+ * 避免循环依赖（jsx 包不依赖 core 的 diff）
+ */
+function diffElement(oldNode: Node, newNode: Node): Node {
+  if (oldNode.nodeType !== newNode.nodeType || oldNode.nodeName !== newNode.nodeName) {
+    oldNode.parentNode?.replaceChild(newNode, oldNode);
+    return newNode;
+  }
+
+  if (oldNode.nodeType === Node.TEXT_NODE) {
+    if (oldNode.textContent !== newNode.textContent) {
+      oldNode.textContent = newNode.textContent;
+    }
+    return oldNode;
+  }
+
+  if (oldNode instanceof HTMLElement && newNode instanceof HTMLElement) {
+    // 如果旧节点是一个组件的根节点，跳过深度 diff（由组件自己管理）
+    if ((oldNode as any)._componentInstance) {
+      // 组件节点：只更新属性，子节点由组件 updateFn 管理
+      syncAttributes(oldNode, newNode);
+      return oldNode;
+    }
+    
+    syncAttributes(oldNode, newNode);
+    syncListeners(oldNode, newNode);
+    
+    // 递归子节点
+    const oldChildren = Array.from(oldNode.childNodes);
+    const newChildren = Array.from(newNode.childNodes);
+    const maxLen = Math.max(oldChildren.length, newChildren.length);
+    for (let i = 0; i < maxLen; i++) {
+      const oc = oldChildren[i];
+      const nc = newChildren[i];
+      if (!oc && nc) oldNode.appendChild(nc);
+      else if (oc && !nc) oldNode.removeChild(oc);
+      else if (oc && nc) diffElement(oc, nc);
+    }
+    
+    // 特殊处理 value property
+    if ('value' in newNode && 'value' in oldNode) {
+      const newValue = (newNode as any).value;
+      const hasValueAttr = newNode.hasAttribute('value');
+      if ((newNode as any).value !== (oldNode as any).value) {
+        if (hasValueAttr || newValue !== '') {
+          (oldNode as any).value = newValue;
+        }
+      }
+    }
+
+    return oldNode;
+  }
+
+  return oldNode;
+}
+
+function syncAttributes(oldNode: HTMLElement, newNode: HTMLElement) {
+  Array.from(oldNode.attributes).forEach(attr => {
+    if (!newNode.hasAttribute(attr.name)) oldNode.removeAttribute(attr.name);
+  });
+  Array.from(newNode.attributes).forEach(attr => {
+    if (oldNode.getAttribute(attr.name) !== attr.value) oldNode.setAttribute(attr.name, attr.value);
+  });
+}
+
+function syncListeners(oldNode: HTMLElement, newNode: HTMLElement) {
+  const oldListeners = (oldNode as any)._listeners || {};
+  const newListeners = (newNode as any)._listeners || {};
+  for (const [name, listener] of Object.entries(oldListeners)) {
+    if (!newListeners[name] || newListeners[name] !== listener) {
+      oldNode.removeEventListener(name, listener as EventListener);
+      delete oldListeners[name];
+    }
+  }
+  for (const [name, listener] of Object.entries(newListeners)) {
+    if (!oldListeners[name]) {
+      oldNode.addEventListener(name, listener as EventListener);
+      oldListeners[name] = listener;
+    }
+  }
+  (oldNode as any)._listeners = oldListeners;
 }
 
 /**

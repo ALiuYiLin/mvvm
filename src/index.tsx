@@ -12,12 +12,12 @@ import { MySwitch } from "./components/switch";
 import { MyInput } from "./components/input";
 
 const routes = [
-  { path: "/home", component: () => Home() },
-  { path: "/", component: () => Home() },
-  { path: "/not-found", component: () => NotFound() },
-  { path: "/component/button", component: () => Button() },
-  { path: "/component/switch", component: () => Switch() },
-  { path: "/component/input", component: () => Input() },
+  { path: "/home", component: Home },
+  { path: "/", component: Home },
+  { path: "/not-found", component: NotFound },
+  { path: "/component/button", component: Button },
+  { path: "/component/switch", component: Switch },
+  { path: "/component/input", component: Input },
 ];
 const router = new Router({ routes });
 
@@ -80,14 +80,17 @@ const options: Option[] = [
   },
   {
     selector: "#app",
-    render: () => (
-      <div>
-        <p style="margin-bottom:12px;color:#999;font-size:13px;">
-          当前路由：{router.route.value?.path}
-        </p>
-        {router.route.value?.component()}
-      </div>
-    ),
+    render: () => {
+      const Component = router.route.value?.component as ((...args: any[]) => any) | undefined;
+      return (
+        <div>
+          <p style="margin-bottom:12px;color:#999;font-size:13px;">
+            当前路由：{router.route.value?.path}
+          </p>
+          {Component ? <Component /> : null}
+        </div>
+      );
+    },
   },
 ];
 app.resolveOptions(options);
