@@ -86,3 +86,7 @@ render => 生成DOM结构
 模板与插槽合并 => 生成DOM结构
 绑定事件 =》 合并DOM结构
 
+
+
+1、一种是在html中声明组件（由core解析DOM，提取props（喊模板插槽slots），再调用组件render方法=》生成真实DOM）
+2、一种是通过jsx工厂函数创建的组件（render方法，无需使用core处理，工厂函数会调组件render方法生成真实DOM）
