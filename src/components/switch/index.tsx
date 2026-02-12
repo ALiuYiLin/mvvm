@@ -13,6 +13,7 @@
  * - label-on: 开启时的文字
  * - label-off: 关闭时的文字
  */
+import './index.css'
 
 export type MySwitchProps = {
   type?: string;

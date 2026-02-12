@@ -17,6 +17,7 @@
  * - prefix-icon: 前缀图标（通过 slot）
  * - suffix-icon: 后缀图标（通过 slot）
  */
+import './index.css'
 
 export type MyInputProps = {
   type?: string;
