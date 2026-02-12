@@ -30,6 +30,7 @@ export function getComponent(name: string): RenderFn | undefined {
 
 /**
  * 解析插槽内容
+ * 仅支持 <template slot="slotName">...</template> 语法
  * @param customElement 自定义元素 <MyButton>...</MyButton>
  * @returns 插槽名到内容的映射
  */
@@ -38,41 +39,23 @@ function parseSlots(customElement: Element): Map<string, Node[]> {
     const defaultSlotContent: Node[] = [];
 
     Array.from(customElement.childNodes).forEach(child => {
-        if (child instanceof HTMLTemplateElement) {
-            // 获取插槽名：支持 #before, #default, slot="name" 等语法
-            const slotName = getSlotNameFromTemplate(child);
-            
-            if (slotName) {
-                // 获取 template 内的实际内容
-                const content = Array.from(child.content.childNodes)
-                    .map(n => n.cloneNode(true))
-                    .filter(n => !(n.nodeType === Node.TEXT_NODE && !n.textContent?.trim()));
-                if (content.length > 0) {
-                    slots.set(slotName, content);
-                }
-            } else {
-                // 没有指定插槽名，归入默认插槽
-                const content = Array.from(child.content.childNodes)
-                    .map(n => n.cloneNode(true))
-                    .filter(n => !(n.nodeType === Node.TEXT_NODE && !n.textContent?.trim()));
-                defaultSlotContent.push(...content);
-            }
-        } else if (child instanceof Element && child.hasAttribute('slot')) {
-            // <div slot="slotName">
+        if (child instanceof HTMLTemplateElement && child.hasAttribute('slot')) {
             const slotName = child.getAttribute('slot') || 'default';
-            const existing = slots.get(slotName) || [];
-            existing.push(child.cloneNode(true));
-            slots.set(slotName, existing);
+            const content = Array.from(child.content.childNodes)
+                .map(n => n.cloneNode(true))
+                .filter(n => !(n.nodeType === Node.TEXT_NODE && !n.textContent?.trim()));
+            if (content.length > 0) {
+                const existing = slots.get(slotName) || [];
+                existing.push(...content);
+                slots.set(slotName, existing);
+            }
         } else if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
-            // 文本节点归入默认插槽
             defaultSlotContent.push(document.createTextNode(child.textContent.trim()));
         } else if (child.nodeType === Node.ELEMENT_NODE) {
-            // 普通元素归入默认插槽
             defaultSlotContent.push(child.cloneNode(true));
         }
     });
 
-    // 设置默认插槽
     if (defaultSlotContent.length > 0) {
         const existing = slots.get('default') || [];
         slots.set('default', [...existing, ...defaultSlotContent]);
@@ -82,24 +65,19 @@ function parseSlots(customElement: Element): Map<string, Node[]> {
 }
 
 /**
- * 从 template 元素获取插槽名
- * 支持: #before, #default, slot="name" 等语法
- * 浏览器会将 #before 解析为 #before="" 属性
+ * 将插槽合并到 props 中
+ * - default 插槽 -> props.children
+ * - 其他具名插槽 -> props.<slotName>
  */
-function getSlotNameFromTemplate(template: HTMLTemplateElement): string | null {
-    // 优先检查 slot 属性
-    if (template.hasAttribute('slot')) {
-        return template.getAttribute('slot') || 'default';
-    }
-    
-    // 检查 #xxx 语法（浏览器会解析为属性名）
-    for (const attr of Array.from(template.attributes)) {
-        if (attr.name.startsWith('#')) {
-            return attr.name.slice(1); // 去掉 # 前缀
+function mergeSlots(props: Record<string, any>, slots: Map<string, Node[]>): Record<string, any> {
+    slots.forEach((nodes, name) => {
+        if (name === 'default') {
+            props.children = nodes;
+        } else {
+            props[name] = nodes;
         }
-    }
-    
-    return null;
+    });
+    return props;
 }
 
 /**
@@ -125,12 +103,10 @@ export function resolveComponents(root: Element = document.body) {
     // 判断 root 本身是否为自定义组件
     const rootRender = componentRegistry.get(root.tagName.toLowerCase());
     if (rootRender) {
-        const slots = parseSlots(root);
-        const props = getProps(root);
+        const props = mergeSlots(getProps(root), parseSlots(root));
         options.push({
             el: root,
             props,
-            slots,
             render: rootRender
         });
     }
@@ -141,15 +117,10 @@ export function resolveComponents(root: Element = document.body) {
         const customElements = root.querySelectorAll(name.toLowerCase());
         
         customElements.forEach(customElement => {
-            // 解析插槽
-            const slots = parseSlots(customElement);
-
-            // 获取 props
-            const props = getProps(customElement);
+            const props = mergeSlots(getProps(customElement), parseSlots(customElement));
             options.push({
                 el: customElement,
                 props,
-                slots,
                 render
             })
         });

@@ -88,27 +88,27 @@ export function compile(option: Option) {
 }
 
 /**
- * 处理插槽中的子组件递归编译
+ * 处理 props 中插槽内容的子组件递归编译
+ * 插槽内容已合并到 props 中：children 和其他具名插槽
  */
-function processSlots(slots: Map<string, Node[]>) {
-  if (slots.size === 0) return;
+function processSlotProps(props: Record<string, any>) {
+  for (const key of Object.keys(props)) {
+    const value = props[key];
+    if (!Array.isArray(value)) continue;
+    // 检查是否为 Node[] 类型的插槽内容
+    if (value.length === 0 || !(value[0] instanceof Node)) continue;
 
-  slots.forEach((nodes, slotName) => {
     const resolvedNodes: Node[] = [];
-    nodes.forEach((node) => {
+    value.forEach((node: Node) => {
       if (node instanceof Element) {
         const childOptions = resolveComponents(node);
         if (childOptions.length > 0) {
-          // node 本身就是自定义组件，递归编译后用渲染结果替换
           childOptions.forEach((op) => {
             compileCustom(op);
           });
-          // 第一个 option 的 el 就是 node 本身（resolveComponents 会检查 root）
-          // compileCustom 会把 el.replaceWith 失败（游离节点），
-          // 所以这里直接拿 render 结果作为替换节点
           const firstOp = childOptions[0];
           if (firstOp.el === node && firstOp.render) {
-            const result = firstOp.render(firstOp.props, firstOp.slots);
+            const result = firstOp.render(firstOp.props);
             if (result instanceof Node) {
               resolvedNodes.push(result);
             } else if (typeof result === "string") {
@@ -126,18 +126,18 @@ function processSlots(slots: Map<string, Node[]>) {
         resolvedNodes.push(node);
       }
     });
-    slots.set(slotName, resolvedNodes);
-  });
+    props[key] = resolvedNodes;
+  }
 }
 
 export function compileCustom(option: ParsedOption){
-  const { el, render, slots, props } = option;
+  const { el, render, props } = option;
   const updateFn = () => {
     if(render){
-      // 先渲染插槽中的子组件
-      processSlots(slots);
+      // 先渲染 props 中插槽内容的子组件
+      processSlotProps(props);
       
-      const result = render(props, slots);
+      const result = render(props);
       el.replaceWith(result);
     }
   }

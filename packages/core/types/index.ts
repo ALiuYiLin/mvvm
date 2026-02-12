@@ -12,11 +12,9 @@ export type Listener<
 
 export type ParsedOption = {
   el: Element;
-  props: Record<string, string>;
-  slots: Map<string, Node[]>;
+  props: Record<string, any>;
   render: (
     props: Record<string, any>,
-    slots: Map<string, Node[]>
   ) => string | HTMLElement | Text | DocumentFragment | SVGElement;
 };
 
@@ -32,4 +30,4 @@ export type Option = {
   children?: Option[];
 };
 
-export type RenderFn = (props: Record<string, any>, slots: Map<string, Node[]>) => HTMLElement | DocumentFragment | Text | string | SVGElement;
+export type RenderFn = (props: Record<string, any>) => HTMLElement | DocumentFragment | Text | string | SVGElement;
