@@ -110,50 +110,119 @@ function updateListeners(oldNode: HTMLElement, newNode: HTMLElement) {
   (oldNode as any)._listeners = oldListeners;
 }
 
+function getKey(node: Node): any {
+  return (node as any)._key;
+}
+
+function hasKeyedChildren(children: Node[]): boolean {
+  return children.length > 0 && children.some(c => getKey(c) !== undefined);
+}
+
 function updateChildren(oldParent: HTMLElement, newParent: HTMLElement) {
   const oldChildren = Array.from(oldParent.childNodes);
   const newChildren = Array.from(newParent.childNodes);
-  
-  const maxLength = Math.max(oldChildren.length, newChildren.length);
 
+  // 如果新子节点带 key，走 keyed diff
+  if (hasKeyedChildren(newChildren)) {
+    patchKeyedChildren(oldParent, oldChildren, newChildren);
+    return;
+  }
+
+  // 无 key，原有 index-based diff
+  const maxLength = Math.max(oldChildren.length, newChildren.length);
   for (let i = 0; i < maxLength; i++) {
     const oldChild = oldChildren[i];
     const newChild = newChildren[i];
 
     if (!oldChild && newChild) {
-      // 新增节点
-      // 注意：这里需要 clone newChild，因为 appendChild 会移动节点
-      // 但由于我们是在构建新的 vdom（这里其实是真实 dom），直接移过去也没问题，
-      // 不过 diff 函数通常假设 newNode 是个模版。
-      // 在当前框架下，newNode 是 render() 刚刚生成的新鲜 DOM，直接移动即可。
       oldParent.appendChild(newChild);
     } else if (oldChild && !newChild) {
-      // 删除节点
       oldParent.removeChild(oldChild);
     } else if (oldChild && newChild) {
-      // 递归 diff
       diff(oldChild, newChild);
     }
   }
 }
 
+/**
+ * Keyed children diff
+ * 通过 key 映射旧节点，对于匹配到的旧节点做 diff 复用，未匹配的新增，多余的删除
+ * 最后根据新序列的顺序调整 DOM 位置
+ * @param anchor 可选锚点节点（Fragment 模式下传 endAnchor，新节点插入到 anchor 之前）
+ */
+function patchKeyedChildren(parent: Node, oldChildren: Node[], newChildren: Node[], anchor?: Node | null) {
+  // 建立旧 key -> node 映射
+  const oldKeyMap = new Map<any, Node>();
+  for (const child of oldChildren) {
+    const key = getKey(child);
+    if (key !== undefined) {
+      oldKeyMap.set(key, child);
+    }
+  }
+
+  // 用于跟踪本轮保留的节点
+  const handledOldNodes = new Set<Node>();
+  // 生成结果节点列表（复用旧节点或使用新节点）
+  const resultNodes: Node[] = [];
+
+  for (const newChild of newChildren) {
+    const key = getKey(newChild);
+    const oldChild = key !== undefined ? oldKeyMap.get(key) : undefined;
+
+    if (oldChild) {
+      // 匹配到旧节点 —— diff 更新属性/子节点，复用旧 DOM
+      diff(oldChild, newChild);
+      resultNodes.push(oldChild);
+      handledOldNodes.add(oldChild);
+    } else {
+      // 新节点，直接使用
+      resultNodes.push(newChild);
+    }
+  }
+
+  // 删除不再出现的旧节点
+  for (const child of oldChildren) {
+    if (!handledOldNodes.has(child)) {
+      parent.removeChild(child);
+    }
+  }
+
+  // 按新顺序调整 DOM 位置（从后往前，用 anchor 或 null 作为参考点）
+  let insertAnchor: Node | null = anchor ?? null;
+  for (let i = resultNodes.length - 1; i >= 0; i--) {
+    const node = resultNodes[i];
+    if (node.parentNode !== parent) {
+      parent.insertBefore(node, insertAnchor);
+    } else if (node.nextSibling !== insertAnchor) {
+      parent.insertBefore(node, insertAnchor);
+    }
+    insertAnchor = node;
+  }
+}
+
 
 export function diffChildren(parent: HTMLElement, oldList: (Node | undefined | null)[], newList: (Node | undefined | null)[]) {
-  const maxLength = Math.max(oldList.length, newList.length);
-  
+  const filteredOld = oldList.filter((n): n is Node => n != null);
+  const filteredNew = newList.filter((n): n is Node => n != null);
+
+  if (hasKeyedChildren(filteredNew)) {
+    patchKeyedChildren(parent, filteredOld, filteredNew);
+    return;
+  }
+
+  const maxLength = Math.max(filteredOld.length, filteredNew.length);
   for (let i = 0; i < maxLength; i++) {
-    const oldNode = oldList[i];
-    const newNode = newList[i];
+    const oldNode = filteredOld[i];
+    const newNode = filteredNew[i];
 
     if (!oldNode && newNode) {
-      // 新增
       parent.appendChild(newNode);
     } else if (oldNode && !newNode) {
-      // 删除
       parent.removeChild(oldNode);
     } else if (oldNode && newNode) {
-      // 对比更新
-      diff(oldNode as Node, newNode);
+      diff(oldNode, newNode);
     }
   }
 }
+
+export { patchKeyedChildren, getKey, hasKeyedChildren };

@@ -98,7 +98,6 @@ export function createElement(
 
     for (const child of allChildren) {
       if (child instanceof HTMLTemplateElement && child.getAttribute("slot")) {
-        console.log('child: ', child);
         const slotName = child.getAttribute("slot")!;
         const nodes = Array.from(child.childNodes.length ? child.childNodes : child.content.childNodes) as Child[];
         mergedProps[slotName] = nodes;
@@ -108,7 +107,6 @@ export function createElement(
     }
 
     mergedProps.children = defaultChildren;
-    console.log('mergedProps: ', mergedProps);
     return tag(mergedProps);
   }
 
@@ -124,6 +122,10 @@ export function createElement(
     for (const [key, value] of Object.entries(props)) {
       if (key === "children") {
         continue; // children 单独处理
+      } else if (key === "key") {
+        // key 不设为 HTML attribute，存到 _key 上供 diff 使用
+        (element as any)._key = value;
+        continue;
       } else if (key === "className" || key === "class") {
         element.setAttribute("class", value);
       } else if (key === "style" && typeof value === "object") {
@@ -165,6 +167,12 @@ export function jsxDEV(
   if (tag === Fragment) {
     return Fragment(props || {});
   }
+  // jsxDEV 模式下 key 是独立参数，需要合并回 props 供 createElement 处理
+  if (_key != null && props) {
+    props = { ...props, key: _key };
+  } else if (_key != null) {
+    props = { key: _key };
+  }
   return createElement(tag, props);
 }
 
@@ -199,6 +207,26 @@ function appendChildren(parent: HTMLElement | SVGElement | DocumentFragment, chi
   }
 }
 
-// 导出 jsx 和 jsxs（用于 react-jsx 转换模式）
-export const jsx = createElement;
-export const jsxs = createElement;
+/**
+ * react-jsx transform 的 jsx/jsxs 函数
+ * 签名: jsx(type, props, key)
+ * 注意：与 createElement(type, props, ...children) 不同！
+ * - children 在 props.children 中（而非展开参数）
+ * - key 是独立的第三个参数
+ */
+export function jsx(
+  tag: Tag,
+  props: Record<string, any> | null,
+  key?: any
+): HTMLElement | SVGElement | DocumentFragment {
+  if (tag === Fragment) {
+    return Fragment(props || {});
+  }
+  // 将 key 合并回 props
+  if (key != null) {
+    props = props ? { ...props, key } : { key };
+  }
+  return createElement(tag, props);
+}
+
+export const jsxs = jsx;
