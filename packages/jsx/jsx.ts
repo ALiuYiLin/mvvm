@@ -93,7 +93,23 @@ export function createElement(
   
   // 如果 tag 是函数组件
   if (typeof tag === "function") {
-    return tag({ ...props, children: allChildren });
+    const mergedProps = { ...props };
+    const defaultChildren: Child[] = [];
+
+    for (const child of allChildren) {
+      if (child instanceof HTMLTemplateElement && child.getAttribute("slot")) {
+        console.log('child: ', child);
+        const slotName = child.getAttribute("slot")!;
+        const nodes = Array.from(child.childNodes.length ? child.childNodes : child.content.childNodes) as Child[];
+        mergedProps[slotName] = nodes;
+      } else {
+        defaultChildren.push(child);
+      }
+    }
+
+    mergedProps.children = defaultChildren;
+    console.log('mergedProps: ', mergedProps);
+    return tag(mergedProps);
   }
 
   // 创建 DOM 元素（SVG 元素需要使用命名空间）
